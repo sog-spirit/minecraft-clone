@@ -19,7 +19,7 @@ public class Main {
         Loader loader = new Loader();
         ShaderProgram shader = new ShaderProgram("shaders/vertex.glsl", "shaders/fragment.glsl");
         Renderer renderer = new Renderer();
-        Camera camera = new Camera(DisplayManager.getWindow());
+        Camera camera = new Camera();
 
         RawModel cubeModel = loader.loadToVertexArrayObject(Block.CUBE_VERTICES);
         Block block = new Block(cubeModel);

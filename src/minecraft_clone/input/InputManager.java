@@ -9,7 +9,11 @@ public class InputManager {
     public static float deltaX = 0;
     public static float deltaY = 0;
 
-    public static void setupCallbacks(long window) {
+    private static long window;
+
+    public static void setupCallbacks(long win) {
+        window = win;
+
         glfwSetCursorPosCallback(window, (w, xPos, yPos) -> {
             if (firstMouse) {
                 lastX = xPos;
@@ -24,6 +28,10 @@ public class InputManager {
         });
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    public static boolean isKeyDown(int key) {
+        return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
     public static void resetDeltas() {

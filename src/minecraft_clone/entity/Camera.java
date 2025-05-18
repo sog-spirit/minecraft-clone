@@ -3,6 +3,8 @@ package minecraft_clone.entity;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import minecraft_clone.input.InputManager;
+
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Camera {
@@ -16,13 +18,6 @@ public class Camera {
     private final Vector3f up = new Vector3f(0, 1, 0);
     private final Vector3f right = new Vector3f();
     private final Vector3f worldUp = new Vector3f(0, 1, 0);
-
-    private long window;
-
-    public Camera(long window) {
-        this.window = window;
-        
-    }
 
     public void update(float deltaTime, float dx, float dy) {
         yaw += dx * sensitivity;
@@ -39,22 +34,22 @@ public class Camera {
 
         float velocity = speed * deltaTime;
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_W)) {
             position.add(new Vector3f(front).mul(velocity));
         }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_S)) {
             position.sub(new Vector3f(front).mul(velocity));
         }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_A)) {
             position.sub(new Vector3f(right).mul(velocity));
         }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_D)) {
             position.add(new Vector3f(right).mul(velocity));
         }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_SPACE)) {
             position.add(new Vector3f(up).mul(velocity));
         }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        if (InputManager.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
             position.sub(new Vector3f(up).mul(velocity));
         }
     }
