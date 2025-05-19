@@ -1,5 +1,9 @@
-out vec4 FragColor;
+
+in vec2 texCoords;
+out vec4 fragColor;
+
+uniform sampler2D textureSampler;
 
 void main() {
-    FragColor = vec4(0.6, 0.4, 0.2, 1.0); // Brown block color
+    fragColor = texture(textureSampler, texCoords);
 }

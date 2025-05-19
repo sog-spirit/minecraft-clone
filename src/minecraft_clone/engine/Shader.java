@@ -9,12 +9,12 @@ import java.nio.file.Paths;
 
 import static org.lwjgl.opengl.GL20.*;
 
-public class ShaderProgram {
+public class Shader {
     private final int programID;
 
-    public ShaderProgram(String vertexPath, String fragmentPath) {
-        String vertexCode = readFile(vertexPath);
-        String fragmentCode = readFile(fragmentPath);
+    public Shader(String vertexPath, String fragmentPath) {
+        String vertexCode = loadShader(vertexPath);
+        String fragmentCode = loadShader(fragmentPath);
         int vertexID = compileShader(vertexCode, GL_VERTEX_SHADER);
         int fragmentID = compileShader(fragmentCode, GL_FRAGMENT_SHADER);
 
@@ -23,7 +23,9 @@ public class ShaderProgram {
         glAttachShader(programID, fragmentID);
         glLinkProgram(programID);
         glValidateProgram(programID);
-
+        if (glGetProgrami(programID, GL_LINK_STATUS) == GL_FALSE) {
+            throw new RuntimeException("Shader link failed:\n" + glGetProgramInfoLog(programID));
+        }
         glDeleteShader(vertexID);
         glDeleteShader(fragmentID);
     }
@@ -32,10 +34,13 @@ public class ShaderProgram {
         int id = glCreateShader(type);
         glShaderSource(id, source);
         glCompileShader(id);
+        if (glGetShaderi(id, GL_COMPILE_STATUS) == GL_FALSE) {
+            throw new RuntimeException("Shader compile failed:\n" + glGetShaderInfoLog(id));
+        }
         return id;
     }
 
-    private String readFile(String path) {
+    private String loadShader(String path) {
         try {
             return new String(Files.readAllBytes(Paths.get(path)));
         } catch (Exception e) {
@@ -67,11 +72,20 @@ public class ShaderProgram {
         loadMatrix("projection", matrix);
     }
 
+    public void loadTextureSampler() {
+        loadUniform("textureSampler", 0);
+    }
+
     private void loadMatrix(String name, Matrix4f matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             FloatBuffer floatBuffer = stack.mallocFloat(16);
             matrix.get(floatBuffer);
             glUniformMatrix4fv(glGetUniformLocation(programID, name), false, floatBuffer);
         }
+    }
+
+    private void loadUniform(String name, int value) {
+        int location = glGetUniformLocation(programID, name);
+        glUniform1i(location, value);
     }
 }

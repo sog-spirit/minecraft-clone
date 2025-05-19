@@ -1,9 +1,12 @@
 package minecraft_clone.engine;
 
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.system.MemoryUtil.*;
 
 public class Loader {
     private List<Integer> vertexArrayObjects = new ArrayList<>();
@@ -28,6 +31,56 @@ public class Loader {
         return new RawModel(vertexArrayObjectID, positions.length / 3);
     }
 
+    public RawModel loadToVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
+        int vertexArrayObjectID = createVertexArrayObject();
+        bindIndicesBuffer(indices);
+        storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
+        storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        unbindVertexArrayObject();
+        return new RawModel(vertexArrayObjectID, indices.length);
+    }
+
+    private int createVertexArrayObject() {
+        int vertexArrayObjectID = glGenVertexArrays();
+        vertexArrayObjects.add(vertexArrayObjectID);
+        glBindVertexArray(vertexArrayObjectID);
+        return vertexArrayObjectID;
+    }
+
+    private void bindIndicesBuffer(int[] indices) {
+        int vertexBufferObjectID = glGenBuffers();
+        vertexBufferObjects.add(vertexBufferObjectID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBufferObjectID);
+        IntBuffer intBuffer = storeDataInIntBuffer(indices);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuffer, GL_STATIC_DRAW);
+    }
+
+    private IntBuffer storeDataInIntBuffer(int[] data) {
+        IntBuffer intBuffer = memAllocInt(data.length);
+        intBuffer.put(data).flip();
+        return intBuffer;
+    }
+
+    private void storeDataInAttributeList(int attributeNumber, int size, int vertexSize, float[] data) {
+        int vertexBufferObjectID = glGenBuffers();
+        vertexBufferObjects.add(vertexBufferObjectID);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjectID);
+
+        FloatBuffer buffer = storeDataInFloatBuffer(data);
+        glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(attributeNumber, size, GL_FLOAT, false, vertexSize * Float.BYTES, attributeNumber == 0 ? 0 : 3 * Float.BYTES);
+        glEnableVertexAttribArray(attributeNumber);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    private FloatBuffer storeDataInFloatBuffer(float[] data) {
+        FloatBuffer floatBuffer = memAllocFloat(data.length);
+        floatBuffer.put(data).flip();
+        return floatBuffer;
+    }
+
     public void cleanup() {
         for (int vertexArrayObject : this.vertexArrayObjects) {
             glDeleteVertexArrays(vertexArrayObject);
@@ -35,5 +88,9 @@ public class Loader {
         for (int vertexBufferObject : this.vertexBufferObjects) {
             glDeleteBuffers(vertexBufferObject);
         }
+    }
+
+    private static void unbindVertexArrayObject() {
+        glBindVertexArray(0);
     }
 }
