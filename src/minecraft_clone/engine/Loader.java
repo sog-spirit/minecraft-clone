@@ -33,10 +33,13 @@ public class Loader {
 
     public RawModel loadToVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
         int vertexArrayObjectID = createVertexArrayObject();
-        bindIndicesBuffer(indices);
-        storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
-        storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        IntBuffer intBuffer = bindIndicesBuffer(indices);
+        FloatBuffer floatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
+        FloatBuffer floatBuffer2 = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
         unbindVertexArrayObject();
+        memFree(intBuffer);
+        memFree(floatBuffer);
+        memFree(floatBuffer2);
         return new RawModel(vertexArrayObjectID, indices.length);
     }
 
@@ -47,12 +50,13 @@ public class Loader {
         return vertexArrayObjectID;
     }
 
-    private void bindIndicesBuffer(int[] indices) {
+    private IntBuffer bindIndicesBuffer(int[] indices) {
         int vertexBufferObjectID = glGenBuffers();
         vertexBufferObjects.add(vertexBufferObjectID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBufferObjectID);
         IntBuffer intBuffer = storeDataInIntBuffer(indices);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuffer, GL_STATIC_DRAW);
+        return intBuffer;
     }
 
     private IntBuffer storeDataInIntBuffer(int[] data) {
@@ -61,7 +65,7 @@ public class Loader {
         return intBuffer;
     }
 
-    private void storeDataInAttributeList(int attributeNumber, int size, int vertexSize, float[] data) {
+    private FloatBuffer storeDataInAttributeList(int attributeNumber, int size, int vertexSize, float[] data) {
         int vertexBufferObjectID = glGenBuffers();
         vertexBufferObjects.add(vertexBufferObjectID);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjectID);
@@ -73,6 +77,7 @@ public class Loader {
         glEnableVertexAttribArray(attributeNumber);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        return buffer;
     }
 
     private FloatBuffer storeDataInFloatBuffer(float[] data) {

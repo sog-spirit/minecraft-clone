@@ -30,6 +30,7 @@ public class DisplayManager {
 
     public static void closeDisplay() {
         glfwDestroyWindow(window);
+        GL.setCapabilities(null);
         glfwTerminate();
     }
 

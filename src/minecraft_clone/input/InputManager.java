@@ -2,6 +2,11 @@ package minecraft_clone.input;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import org.lwjgl.glfw.GLFWCursorPosCallback;
+import org.lwjgl.glfw.GLFWKeyCallback;
+
+import minecraft_clone.engine.DisplayManager;
+
 public class InputManager {
     private static double lastX = 400;
     private static double lastY = 300;
@@ -10,24 +15,40 @@ public class InputManager {
     public static float deltaY = 0;
 
     private static long window;
+    private static GLFWCursorPosCallback cursorCallback;
+    private static GLFWKeyCallback keyCallback;
 
     public static void setupCallbacks(long win) {
         window = win;
 
-        glfwSetCursorPosCallback(window, (w, xPos, yPos) -> {
-            if (firstMouse) {
+        cursorCallback = new GLFWCursorPosCallback() {
+            @Override
+            public void invoke(long window, double xPos, double yPos) {
+                if (firstMouse) {
+                    lastX = xPos;
+                    lastY = yPos;
+                    firstMouse = false;
+                }
+
+                deltaX = (float) (xPos - lastX);
+                deltaY = (float) (lastY - yPos);
                 lastX = xPos;
                 lastY = yPos;
-                firstMouse = false;
             }
-
-            deltaX = (float) (xPos - lastX);
-            deltaY = (float) (lastY - yPos);
-            lastX = xPos;
-            lastY = yPos;
-        });
+        };
+        glfwSetCursorPosCallback(win, cursorCallback);
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+        keyCallback = new GLFWKeyCallback() {
+            @Override
+            public void invoke(long window, int key, int scancode, int action, int mods) {
+                if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+                    glfwSetWindowShouldClose(window, true);
+                }
+            }
+        };
+        glfwSetKeyCallback(win, keyCallback);
     }
 
     public static boolean isKeyDown(int key) {
@@ -37,5 +58,10 @@ public class InputManager {
     public static void resetDeltas() {
         deltaX = 0;
         deltaY = 0;
+    }
+
+    public static void freeInputCallbacks() {
+        cursorCallback.free();
+        keyCallback.free();
     }
 }

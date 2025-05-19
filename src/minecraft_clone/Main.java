@@ -17,9 +17,13 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL13.*;
 
 import org.joml.Vector3f;
+import org.lwjgl.system.Configuration;
 
 public class Main {
     public static void main(String[] args) {
+        Configuration.DEBUG.set(true);
+        Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
+
         DisplayManager.createDisplay("Minecraft clone", 800, 600);
 
         InputManager.setupCallbacks(DisplayManager.getWindow());
@@ -64,6 +68,7 @@ public class Main {
 
         shader.cleanup();
         loader.cleanup();
+        InputManager.freeInputCallbacks();
         DisplayManager.closeDisplay();
     }
 }
