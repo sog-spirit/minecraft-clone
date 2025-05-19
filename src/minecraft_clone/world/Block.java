@@ -2,22 +2,20 @@ package minecraft_clone.world;
 
 import org.joml.Vector3f;
 
-import minecraft_clone.engine.RawModel;
-
 public class Block {
     private final Vector3f position;
-    private final RawModel model;
+    private final BlockType type;
 
-    public Block(RawModel model, Vector3f position) {
+    public Block(Vector3f position, BlockType type) {
         this.position = position;
-        this.model = model;
-    }
-
-    public RawModel getModel() {
-        return model;
+        this.type = type;
     }
 
     public Vector3f getPosition() {
         return position;
+    }
+
+    public BlockType getType() {
+        return type;
     }
 }

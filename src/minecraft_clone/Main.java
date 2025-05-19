@@ -11,6 +11,7 @@ import minecraft_clone.render.BlockModel;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
 import minecraft_clone.world.Block;
+import minecraft_clone.world.BlockType;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -29,11 +30,10 @@ public class Main {
         TextureAtlas atlas = new TextureAtlas(256, 16);
         Texture texture = new Texture("textures/terrain.png");
 
-        float[] vertices = BlockModel.getCube(atlas);
+        Block block = new Block(new Vector3f(0, 0, 0), BlockType.STONE);
+        float[] vertices = BlockModel.getCube(atlas, block.getType());
         int[] indices = BlockModel.getIndices();
-
         RawModel cubeModel = loader.loadToVertexArrayObject(vertices, indices, 5);
-        Block block = new Block(cubeModel, new Vector3f(0, 0, 0));
 
         float lastFrameTime = (float) glfwGetTime();
 
@@ -56,7 +56,7 @@ public class Main {
             shader.loadTextureSampler();
             glActiveTexture(GL_TEXTURE0);
             texture.bind();
-            renderer.render(block, shader);
+            renderer.renderBlock(cubeModel, shader, block);
             shader.stop();
 
             DisplayManager.updateDisplay();

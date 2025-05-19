@@ -1,5 +1,9 @@
 package minecraft_clone.world;
 
-public class BlockType {
-
+public enum BlockType {
+    AIR,
+    GRASS,
+    DIRT,
+    STONE,
+    SAND
 }

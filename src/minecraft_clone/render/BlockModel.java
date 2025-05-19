@@ -1,10 +1,15 @@
 package minecraft_clone.render;
 
+import minecraft_clone.world.BlockProperties;
+import minecraft_clone.world.BlockRegistry;
+import minecraft_clone.world.BlockType;
+
 public class BlockModel {
-    public static float[] getCube(TextureAtlas atlas) {
-        float[] topUVs    = atlas.getUVCoords(0, 0); // Grass top
-        float[] sideUVs   = atlas.getUVCoords(1, 0); // Grass side
-        float[] bottomUVs = atlas.getUVCoords(2, 0); // Dirt
+    public static float[] getCube(TextureAtlas atlas, BlockType type) {
+        BlockProperties blockProperties = BlockRegistry.get(type);
+        float[] topUVs    = atlas.getUVCoords(blockProperties.textureTop[0], blockProperties.textureTop[1]);
+        float[] sideUVs   = atlas.getUVCoords(blockProperties.textureSide[0], blockProperties.textureSide[1]);
+        float[] bottomUVs = atlas.getUVCoords(blockProperties.textureBottom[0], blockProperties.textureBottom[1]);
 
         return new float[]{
                 // FRONT

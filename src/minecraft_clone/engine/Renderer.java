@@ -7,8 +7,7 @@ import static org.lwjgl.opengl.GL30.*;
 import org.joml.Matrix4f;
 
 public class Renderer {
-    public void render(Block block, Shader shader) {
-        RawModel model = block.getModel();
+    public void renderBlock(RawModel model, Shader shader, Block block) {
         glBindVertexArray(model.getVertexArrayObjectID());
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
