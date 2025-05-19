@@ -4,7 +4,7 @@ import minecraft_clone.world.BlockProperties;
 import minecraft_clone.world.BlockRegistry;
 import minecraft_clone.world.BlockType;
 
-public class BlockModel {
+public class CubeModel {
     public static float[] getCube(TextureAtlas atlas, BlockType type) {
         BlockProperties blockProperties = BlockRegistry.get(type);
         float[] topUVs    = atlas.getUVCoords(blockProperties.textureTop[0], blockProperties.textureTop[1]);

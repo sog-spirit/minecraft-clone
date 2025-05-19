@@ -7,7 +7,7 @@ import minecraft_clone.engine.Renderer;
 import minecraft_clone.engine.Shader;
 import minecraft_clone.entity.Camera;
 import minecraft_clone.input.InputManager;
-import minecraft_clone.render.BlockModel;
+import minecraft_clone.render.CubeModel;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
 import minecraft_clone.world.Block;
@@ -31,8 +31,8 @@ public class Main {
         Texture texture = new Texture("textures/terrain.png");
 
         Block block = new Block(new Vector3f(0, 0, 0), BlockType.STONE);
-        float[] vertices = BlockModel.getCube(atlas, block.getType());
-        int[] indices = BlockModel.getIndices();
+        float[] vertices = CubeModel.getCube(atlas, block.getType());
+        int[] indices = CubeModel.getIndices();
         RawModel cubeModel = loader.loadToVertexArrayObject(vertices, indices, 5);
 
         float lastFrameTime = (float) glfwGetTime();
