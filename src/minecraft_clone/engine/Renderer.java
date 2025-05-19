@@ -5,7 +5,6 @@ import minecraft_clone.world.Block;
 import static org.lwjgl.opengl.GL30.*;
 
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 public class Renderer {
     public void render(Block block, Shader shader) {
@@ -13,8 +12,7 @@ public class Renderer {
         glBindVertexArray(model.getVertexArrayObjectID());
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
-        shader.loadModelMatrix(block.getModelMatrix());
-//        glDrawArrays(GL_TRIANGLES, 0, model.getVertexCount());
+        shader.loadModelMatrix(new Matrix4f().translate(block.getPosition()));
         glDrawElements(GL_TRIANGLES, model.getVertexCount(), GL_UNSIGNED_INT, 0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(0);

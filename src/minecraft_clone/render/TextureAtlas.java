@@ -12,13 +12,13 @@ public class TextureAtlas {
     // Returns UVs for a tile (e.g., tileX = 1, tileY = 3)
     public float[] getUVCoords(int tileX, int tileY) {
         float u = tileX * tileSize;
-        float v = tileY * tileSize;
+        float v = 1.0f - (tileY + 1) * tileSize;
 
         return new float[]{
-            u, v + tileSize,
-            u + tileSize, v + tileSize,
+            u, v,
             u + tileSize, v,
-            u, v
+            u + tileSize, v + tileSize,
+            u, v + tileSize,
         };
     }
 }
