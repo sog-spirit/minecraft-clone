@@ -1,0 +1,117 @@
+package minecraft_clone.world;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.joml.Vector3f;
+
+import minecraft_clone.engine.Loader;
+import minecraft_clone.engine.RawModel;
+import minecraft_clone.render.CubeModel;
+import minecraft_clone.render.TextureAtlas;
+
+public class Chunk {
+    public static final int CHUNK_SIZE = 16;
+    private Block[][][] blocks;
+    private RawModel model;
+    private Vector3f position;
+    private Loader loader;
+    private TextureAtlas atlas;
+
+    public Chunk(Vector3f position, Loader loader, TextureAtlas atlas) {
+        this.position = position;
+        this.loader = loader;
+        this.atlas = atlas;
+        this.blocks = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+        generateTerrain();
+    }
+
+    private void generateTerrain() {
+        for (int x = 0; x < CHUNK_SIZE; x++) {
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int z = 0; z < CHUNK_SIZE; z++) {
+                    if (y < CHUNK_SIZE / 2) {
+                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.DIRT);
+                    } else {
+                        blocks[x][y][z] = null;
+                    }
+                }
+            }
+        }
+    }
+
+    public void generateMesh() {
+        List<Float> verticesList = new ArrayList<>();
+        List<Integer> indicesList = new ArrayList<>();
+
+        for (int x = 0; x < CHUNK_SIZE; x++) {
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int z = 0; z < CHUNK_SIZE; z++) {
+                    Block block = blocks[x][y][z];
+                    if (block != null && block.getType() != BlockType.AIR) {
+                        addVisibleFaces(x, y, z, block.getType(), verticesList, indicesList);
+                    }
+                }
+            }
+        }
+
+        // Convert to arrays
+        float[] vertices = new float[verticesList.size()];
+        for (int i = 0; i < verticesList.size(); i++) {
+            vertices[i] = verticesList.get(i);
+        }
+        int[] indices = new int[indicesList.size()];
+        for (int i = 0; i < indicesList.size(); i++) {
+            indices[i] = indicesList.get(i);
+        }
+
+        // Load into VAO
+        model = loader.loadToVertexArrayObject(vertices, indices, 5); // 5 floats per vertex
+    }
+
+    private void addVisibleFaces(int x, int y, int z, BlockType type, List<Float> vertices, List<Integer> indices) {
+        float[] cubeVertices = CubeModel.getCube(atlas, type);
+        if (isFaceVisible(x, y + 1, z)) addFace(vertices, indices, cubeVertices, 16, 20, x, y, z); // Top
+        if (isFaceVisible(x, y - 1, z)) addFace(vertices, indices, cubeVertices, 20, 24, x, y, z); // Bottom
+        if (isFaceVisible(x, y, z + 1)) addFace(vertices, indices, cubeVertices, 0, 4, x, y, z);   // Front
+        if (isFaceVisible(x, y, z - 1)) addFace(vertices, indices, cubeVertices, 4, 8, x, y, z);   // Back
+        if (isFaceVisible(x - 1, y, z)) addFace(vertices, indices, cubeVertices, 8, 12, x, y, z);  // Left
+        if (isFaceVisible(x + 1, y, z)) addFace(vertices, indices, cubeVertices, 12, 16, x, y, z); // Right
+    }
+
+    private boolean isFaceVisible(int x, int y, int z) {
+        // Check if the adjacent position is outside the chunk or contains air
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
+            return true; // Adjacent to another chunk (assume visible for simplicity)
+        }
+        Block adjacent = blocks[x][y][z];
+        return adjacent == null || adjacent.getType() == BlockType.AIR;
+    }
+
+    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z) {
+        int startIndex = vertices.size() / 5; // Current vertex count before adding this face
+        // Add the 4 vertices for this face
+        for (int i = vertexStart; i < vertexEnd; i++) {
+            vertices.add(cubeVertices[i * 5] + x);      // x position
+            vertices.add(cubeVertices[i * 5 + 1] + y);  // y position
+            vertices.add(cubeVertices[i * 5 + 2] + z);  // z position
+            vertices.add(cubeVertices[i * 5 + 3]);      // u coordinate
+            vertices.add(cubeVertices[i * 5 + 4]);      // v coordinate
+        }
+        // Add indices for two triangles: 0,1,2 and 2,3,0
+        indices.add(startIndex + 0);
+        indices.add(startIndex + 1);
+        indices.add(startIndex + 2);
+        indices.add(startIndex + 2);
+        indices.add(startIndex + 3);
+        indices.add(startIndex + 0);
+    }
+
+    public RawModel getModel() {
+        return model;
+    }
+
+    public Vector3f getPosition() {
+        return position;
+    }
+}

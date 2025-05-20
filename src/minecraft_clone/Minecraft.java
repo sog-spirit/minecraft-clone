@@ -5,17 +5,17 @@ import org.joml.Vector3f;
 import minecraft_clone.engine.DisplayManager;
 import minecraft_clone.engine.InputManager;
 import minecraft_clone.engine.Loader;
-import minecraft_clone.engine.RawModel;
 import minecraft_clone.engine.Renderer;
 import minecraft_clone.engine.Shader;
 import minecraft_clone.entity.Camera;
-import minecraft_clone.render.CubeModel;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
-import minecraft_clone.world.Block;
-import minecraft_clone.world.BlockType;
+import minecraft_clone.world.Chunk;
 
 import static org.lwjgl.opengl.GL13.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Minecraft {
     private DisplayManager displayManager;
@@ -26,8 +26,7 @@ public class Minecraft {
     private Camera camera;
     private TextureAtlas atlas;
     private Texture texture;
-    private Block block;
-    private RawModel cubeModel;
+    private List<Chunk> chunks = new ArrayList<>();
 
     public Minecraft() {
         displayManager = new DisplayManager();
@@ -44,11 +43,14 @@ public class Minecraft {
         camera = new Camera();
         atlas = new TextureAtlas(256, 16);
         texture = new Texture("textures/terrain.png");
-        block = new Block(new Vector3f(0, 0, 0), BlockType.STONE);
 
-        float[] vertices = CubeModel.getCube(atlas, block.getType());
-        int[] indices = CubeModel.getIndices();
-        cubeModel = loader.loadToVertexArrayObject(vertices, indices, 5);
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                Chunk chunk = new Chunk(new Vector3f(x * 16, 0, z * 16), loader, atlas);
+                chunk.generateMesh();
+                chunks.add(chunk);
+            }
+        }
     }
 
     public void update(float deltaTime) {
@@ -67,7 +69,9 @@ public class Minecraft {
         shader.loadTextureSampler();
         glActiveTexture(GL_TEXTURE0);
         texture.bind();
-        renderer.renderBlock(cubeModel, shader, block);
+        for (Chunk chunk : chunks) {
+            renderer.renderChunk(chunk, shader);
+        }
         shader.stop();
 
         displayManager.updateDisplay();

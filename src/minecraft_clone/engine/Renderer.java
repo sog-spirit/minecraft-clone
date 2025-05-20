@@ -1,17 +1,18 @@
 package minecraft_clone.engine;
 
-import minecraft_clone.world.Block;
+import minecraft_clone.world.Chunk;
 
 import static org.lwjgl.opengl.GL30.*;
 
 import org.joml.Matrix4f;
 
 public class Renderer {
-    public void renderBlock(RawModel model, Shader shader, Block block) {
+    public void renderChunk(Chunk chunk, Shader shader) {
+        RawModel model = chunk.getModel();
         glBindVertexArray(model.getVertexArrayObjectID());
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        shader.loadModelMatrix(new Matrix4f().translate(block.getPosition()));
+        glEnableVertexAttribArray(0); // Position
+        glEnableVertexAttribArray(1); // Texture coords
+        shader.loadModelMatrix(new Matrix4f().translate(chunk.getPosition()));
         glDrawElements(GL_TRIANGLES, model.getVertexCount(), GL_UNSIGNED_INT, 0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(0);
