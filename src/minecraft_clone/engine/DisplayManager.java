@@ -18,6 +18,7 @@ public class DisplayManager {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         window = glfwCreateWindow(width, height, title, 0, 0);
         glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
         GL.createCapabilities();
         glEnable(GL_DEPTH_TEST);
     }

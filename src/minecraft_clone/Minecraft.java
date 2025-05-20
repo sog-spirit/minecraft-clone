@@ -54,10 +54,7 @@ public class Minecraft {
     }
 
     public void update(float deltaTime) {
-        float dx = InputManager.deltaX;
-        float dy = InputManager.deltaY;
-        camera.update(deltaTime, dx, dy);
-        inputManager.resetDeltas();
+        inputManager.updateCamera(camera, deltaTime);
     }
 
     public void render() {

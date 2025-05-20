@@ -3,69 +3,63 @@ package minecraft_clone.entity;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import minecraft_clone.engine.InputManager;
-
-import static org.lwjgl.glfw.GLFW.*;
-
 public class Camera {
-    private final Vector3f position = new Vector3f(0, 0, 3);
-    private float pitch = 0;
-    private float yaw = -90;
-    private final float sensitivity = 0.1f;
-    private final float speed = 5.0f;
+    private Vector3f position; // Camera position in 3D space
+    private float yaw;         // Rotation around the vertical axis (in degrees)
+    private float pitch;       // Rotation around the horizontal axis (in degrees)
 
-    private Vector3f front = new Vector3f(0, 0, -1);
-    private final Vector3f up = new Vector3f(0, 1, 0);
-    private final Vector3f right = new Vector3f();
-    private final Vector3f worldUp = new Vector3f(0, 1, 0);
-
-    public void update(float deltaTime, float dx, float dy) {
-        yaw += dx * sensitivity;
-        pitch += dy * sensitivity;
-
-        if (pitch > 89.0f) {
-            pitch = 89.0f;
-        }
-        if (pitch < -89.0f) {
-            pitch = -89.0f;
-        }
-
-        updateVectors();
-
-        float velocity = speed * deltaTime;
-
-        if (InputManager.isKeyDown(GLFW_KEY_W)) {
-            position.add(new Vector3f(front).mul(velocity));
-        }
-        if (InputManager.isKeyDown(GLFW_KEY_S)) {
-            position.sub(new Vector3f(front).mul(velocity));
-        }
-        if (InputManager.isKeyDown(GLFW_KEY_A)) {
-            position.sub(new Vector3f(right).mul(velocity));
-        }
-        if (InputManager.isKeyDown(GLFW_KEY_D)) {
-            position.add(new Vector3f(right).mul(velocity));
-        }
-        if (InputManager.isKeyDown(GLFW_KEY_SPACE)) {
-            position.add(new Vector3f(up).mul(velocity));
-        }
-        if (InputManager.isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
-            position.sub(new Vector3f(up).mul(velocity));
-        }
+    // Constructor initializes the camera at origin with no rotation
+    public Camera() {
+        position = new Vector3f(0, 0, 0);
+        yaw = 270;
+        pitch = 0;
     }
 
-    private void updateVectors() {
-        front.x = (float) Math.cos(Math.toRadians(yaw)) * (float) Math.cos(Math.toRadians(pitch));
-        front.y = (float) Math.sin(Math.toRadians(pitch));
-        front.z = (float) Math.sin(Math.toRadians(yaw)) * (float) Math.cos(Math.toRadians(pitch));
-        front.normalize();
+    // Move the camera by adding a displacement vector to its position
+    public void move(Vector3f displacement) {
+        position.add(displacement);
+    }
 
-        right.set(front).cross(worldUp).normalize();
-        up.set(right).cross(front).normalize();
+    // Rotate the camera by adjusting yaw and pitch, with pitch clamped to prevent flipping
+    public void rotate(float deltaYaw, float deltaPitch) {
+        yaw += deltaYaw;
+        pitch += deltaPitch;
+        // Clamp pitch to avoid camera flipping (between -89 and 89 degrees)
+        if (pitch > 89.0f) pitch = 89.0f;
+        if (pitch < -89.0f) pitch = -89.0f;
+    }
+
+    // Compute the forward vector based on yaw and pitch
+    public Vector3f getForward() {
+        float cosPitch = (float) Math.cos(Math.toRadians(pitch));
+        float sinPitch = (float) Math.sin(Math.toRadians(pitch));
+        float cosYaw = (float) Math.cos(Math.toRadians(yaw));
+        float sinYaw = (float) Math.sin(Math.toRadians(yaw));
+        return new Vector3f(
+            cosYaw * cosPitch,  // x component
+            sinPitch,           // y component
+            sinYaw * cosPitch   // z component
+        ).normalize();
+    }
+
+    // Compute the right vector as the cross product of world up and forward
+    public Vector3f getRight() {
+        Vector3f forward = getForward();
+        Vector3f worldUp = new Vector3f(0, 1, 0); // Assuming world up is +Y
+        Vector3f right = new Vector3f();
+        worldUp.cross(forward, right); // worldUp x forward gives right vector
+        return right.normalize();
+    }
+
+    // Optional: Getter for position (useful for rendering)
+    public Vector3f getPosition() {
+        return position;
     }
 
     public Matrix4f getViewMatrix() {
-        return new Matrix4f().lookAt(position, new Vector3f(position).add(front), up);
+        Vector3f forward = getForward();
+        Vector3f target = new Vector3f(position).add(forward);
+        return new Matrix4f().lookAt(position, target, new Vector3f(0, 1, 0));
     }
 
     public Matrix4f getProjectionMatrix(int width, int height) {

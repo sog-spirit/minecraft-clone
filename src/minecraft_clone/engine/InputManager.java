@@ -2,12 +2,16 @@ package minecraft_clone.engine;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 
+import minecraft_clone.entity.Camera;
+
 public class InputManager {
-    private static double lastX = 400;
-    private static double lastY = 300;
+    private static double lastX = 0;
+    private static double lastY = 0;
     private static boolean firstMouse = true;
     public static float deltaX = 0;
     public static float deltaY = 0;
@@ -15,6 +19,8 @@ public class InputManager {
     private static long window;
     private static GLFWCursorPosCallback cursorCallback;
     private static GLFWKeyCallback keyCallback;
+    private float speed = 5.0f;       // Movement speed (units per second)
+    private float sensitivity = 0.1f; // Mouse sensitivity (degrees per pixel)
 
     public void setupCallbacks(long win) {
         window = win;
@@ -49,13 +55,50 @@ public class InputManager {
         glfwSetKeyCallback(win, keyCallback);
     }
 
-    public static boolean isKeyDown(int key) {
+    public void updateCamera(Camera camera, float deltaTime) {
+        // Calculate movement vector based on keyboard input
+        Vector3f movement = new Vector3f();
+        if (isKeyPressed(GLFW.GLFW_KEY_W)) {
+            movement.add(camera.getForward()); // Move forward
+        }
+        if (isKeyPressed(GLFW.GLFW_KEY_S)) {
+            movement.add(camera.getForward().mul(-1)); // Move backward
+        }
+        if (isKeyPressed(GLFW.GLFW_KEY_A)) {
+            movement.add(camera.getRight()); // Move left
+        }
+        if (isKeyPressed(GLFW.GLFW_KEY_D)) {
+            movement.add(camera.getRight().mul(-1)); // Move right
+        }
+
+        // If there’s any movement, normalize and scale by speed and deltaTime
+        if (movement.lengthSquared() > 0) {
+            movement.normalize().mul(speed * deltaTime);
+            camera.move(movement);
+        }
+
+        // Calculate rotation based on mouse movement
+        float mouseDX = getMouseDeltaX(); // Mouse movement in X (yaw)
+        float mouseDY = getMouseDeltaY(); // Mouse movement in Y (pitch)
+        camera.rotate(mouseDX * sensitivity, mouseDY * sensitivity);
+        resetMouseDelta(); // Reset deltas after applying rotation
+    }
+
+    public static boolean isKeyPressed(int key) {
         return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
-    public void resetDeltas() {
+    public void resetMouseDelta() {
         deltaX = 0;
         deltaY = 0;
+    }
+
+    private float getMouseDeltaX() {
+        return deltaX;
+    }
+
+    private float getMouseDeltaY() {
+        return deltaY;
     }
 
     public void freeInputCallbacks() {
