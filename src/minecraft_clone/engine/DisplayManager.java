@@ -7,8 +7,12 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class DisplayManager {
     private static long window;
+    private static int width;
+    private static int height;
 
-    public static void createDisplay(String title, int width, int height) {
+    public void createDisplay(String title, int width, int height) {
+        DisplayManager.width = width;
+        DisplayManager.height = height;
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -18,23 +22,31 @@ public class DisplayManager {
         glEnable(GL_DEPTH_TEST);
     }
 
-    public static void updateDisplay() {
+    public void updateDisplay() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    public static void clearDisplay() {
+    public void clearDisplay() {
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    public static void closeDisplay() {
+    public void closeDisplay() {
         glfwDestroyWindow(window);
         GL.setCapabilities(null);
         glfwTerminate();
     }
 
-    public static long getWindow() {
+    public long getWindow() {
         return window;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }

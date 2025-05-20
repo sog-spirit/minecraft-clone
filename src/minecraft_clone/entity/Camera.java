@@ -3,7 +3,7 @@ package minecraft_clone.entity;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import minecraft_clone.input.InputManager;
+import minecraft_clone.engine.InputManager;
 
 import static org.lwjgl.glfw.GLFW.*;
 

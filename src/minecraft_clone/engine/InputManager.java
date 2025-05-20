@@ -1,11 +1,9 @@
-package minecraft_clone.input;
+package minecraft_clone.engine;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
-
-import minecraft_clone.engine.DisplayManager;
 
 public class InputManager {
     private static double lastX = 400;
@@ -18,7 +16,7 @@ public class InputManager {
     private static GLFWCursorPosCallback cursorCallback;
     private static GLFWKeyCallback keyCallback;
 
-    public static void setupCallbacks(long win) {
+    public void setupCallbacks(long win) {
         window = win;
 
         cursorCallback = new GLFWCursorPosCallback() {
@@ -55,12 +53,12 @@ public class InputManager {
         return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
-    public static void resetDeltas() {
+    public void resetDeltas() {
         deltaX = 0;
         deltaY = 0;
     }
 
-    public static void freeInputCallbacks() {
+    public void freeInputCallbacks() {
         cursorCallback.free();
         keyCallback.free();
     }
