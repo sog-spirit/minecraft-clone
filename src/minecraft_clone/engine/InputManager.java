@@ -17,13 +17,13 @@ public class InputManager {
     public static float deltaY = 0;
     private static float smoothedDeltaX = 0;
     private static float smoothedDeltaY = 0;
-    private static final float SMOOTHING_FACTOR = 0.5f;
+    private static final float SMOOTHING_FACTOR = 0.3f;
 
     private static long window;
     private static GLFWCursorPosCallback cursorCallback;
     private static GLFWKeyCallback keyCallback;
     private float speed = 5.0f;       // Movement speed (units per second)
-    private float sensitivity = 0.2f; // Mouse sensitivity (degrees per pixel)
+    private float sensitivity = 0.1f; // Mouse sensitivity (degrees per pixel)
 
     public void setupCallbacks(long win) {
         window = win;
@@ -59,6 +59,8 @@ public class InputManager {
     }
 
     public void updateCamera(Camera camera, float deltaTime) {
+        float cappedDeltaTime = Math.min(deltaTime, 0.05f);
+
         smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + deltaX * (1.0f - SMOOTHING_FACTOR);
         smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + deltaY * (1.0f - SMOOTHING_FACTOR);
         // Calculate movement vector based on keyboard input
@@ -83,8 +85,8 @@ public class InputManager {
         }
 
         // Calculate rotation based on mouse movement
-        float rotationSpeed = sensitivity * deltaTime * 60.0f; // Normalize to 60 FPS base
-        camera.rotate(smoothedDeltaX * rotationSpeed, smoothedDeltaY * rotationSpeed);
+        float rotationSpeed = sensitivity * 60.0f; // Normalize to 60 FPS base
+        camera.rotate(smoothedDeltaX * rotationSpeed * cappedDeltaTime, smoothedDeltaY * rotationSpeed * cappedDeltaTime);
         resetMouseDelta(); // Reset deltas after applying rotation
     }
 

@@ -13,14 +13,24 @@ public class Main {
         minecraft.init();
 
         float lastFrameTime = (float) glfwGetTime();
+        float accumulatedTime = 0.0f;
+        float fixedTimeStep = 1.0f / 60.0f;
 
         while (!glfwWindowShouldClose(minecraft.getWindow())) {
             float currentFrameTime = (float) glfwGetTime();
             float deltaTime = currentFrameTime - lastFrameTime;
             lastFrameTime = currentFrameTime;
 
-            minecraft.update(deltaTime);
+            accumulatedTime += deltaTime;
+
+            while (accumulatedTime >= fixedTimeStep) {
+                minecraft.update(fixedTimeStep);
+                accumulatedTime -= fixedTimeStep;
+            }
+
             minecraft.render();
+
+            Thread.yield();
         }
 
         minecraft.cleanup();
