@@ -15,12 +15,15 @@ public class InputManager {
     private static boolean firstMouse = true;
     public static float deltaX = 0;
     public static float deltaY = 0;
+    private static float smoothedDeltaX = 0;
+    private static float smoothedDeltaY = 0;
+    private static final float SMOOTHING_FACTOR = 0.5f;
 
     private static long window;
     private static GLFWCursorPosCallback cursorCallback;
     private static GLFWKeyCallback keyCallback;
     private float speed = 5.0f;       // Movement speed (units per second)
-    private float sensitivity = 0.1f; // Mouse sensitivity (degrees per pixel)
+    private float sensitivity = 0.2f; // Mouse sensitivity (degrees per pixel)
 
     public void setupCallbacks(long win) {
         window = win;
@@ -56,6 +59,8 @@ public class InputManager {
     }
 
     public void updateCamera(Camera camera, float deltaTime) {
+        smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + deltaX * (1.0f - SMOOTHING_FACTOR);
+        smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + deltaY * (1.0f - SMOOTHING_FACTOR);
         // Calculate movement vector based on keyboard input
         Vector3f movement = new Vector3f();
         if (isKeyPressed(GLFW.GLFW_KEY_W)) {
@@ -78,9 +83,8 @@ public class InputManager {
         }
 
         // Calculate rotation based on mouse movement
-        float mouseDX = getMouseDeltaX(); // Mouse movement in X (yaw)
-        float mouseDY = getMouseDeltaY(); // Mouse movement in Y (pitch)
-        camera.rotate(mouseDX * sensitivity, mouseDY * sensitivity);
+        float rotationSpeed = sensitivity * deltaTime * 60.0f; // Normalize to 60 FPS base
+        camera.rotate(smoothedDeltaX * rotationSpeed, smoothedDeltaY * rotationSpeed);
         resetMouseDelta(); // Reset deltas after applying rotation
     }
 
@@ -91,14 +95,6 @@ public class InputManager {
     public void resetMouseDelta() {
         deltaX = 0;
         deltaY = 0;
-    }
-
-    private float getMouseDeltaX() {
-        return deltaX;
-    }
-
-    private float getMouseDeltaY() {
-        return deltaY;
     }
 
     public void freeInputCallbacks() {
