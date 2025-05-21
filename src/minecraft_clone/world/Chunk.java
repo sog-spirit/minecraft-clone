@@ -18,13 +18,15 @@ public class Chunk {
     private Loader loader;
     private TextureAtlas atlas;
     private Chunk[] neighbors; // 0: +x, 1: -x, 2: +z, 3: -z
+    private PerlinNoise noise;
 
-    public Chunk(Vector3f position, Loader loader, TextureAtlas atlas) {
+    public Chunk(Vector3f position, Loader loader, TextureAtlas atlas, PerlinNoise noise) {
         this.position = position;
         this.loader = loader;
         this.atlas = atlas;
         this.blocks = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
         this.neighbors = new Chunk[4];
+        this.noise = noise;
         generateTerrain();
     }
 
@@ -34,12 +36,25 @@ public class Chunk {
 
     private void generateTerrain() {
         for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int y = 0; y < CHUNK_SIZE; y++) {
-                for (int z = 0; z < CHUNK_SIZE; z++) {
-                    if (y < CHUNK_SIZE / 2) {
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                // Calculate world coordinates
+                float worldX = position.x + x;
+                float worldZ = position.z + z;
+                // Generate height using Perlin noise
+                float height = noise.noise(worldX * 0.1f, worldZ * 0.1f);
+                // Scale height to fit within chunk (0 to CHUNK_SIZE)
+                int terrainHeight = (int) ((height + 1) * 0.5f * CHUNK_SIZE);
+                terrainHeight = Math.max(1, Math.min(CHUNK_SIZE - 1, terrainHeight));
+
+                for (int y = 0; y < CHUNK_SIZE; y++) {
+                    if (y < terrainHeight - 2) {
+                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.STONE);
+                    } else if (y < terrainHeight - 1) {
                         blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.DIRT);
+                    } else if (y == terrainHeight - 1) {
+                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GRASS);
                     } else {
-                        blocks[x][y][z] = null;
+                        blocks[x][y][z] = null; // Air
                     }
                 }
             }

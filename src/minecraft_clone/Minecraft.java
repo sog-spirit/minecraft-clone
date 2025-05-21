@@ -1,7 +1,5 @@
 package minecraft_clone;
 
-import org.joml.Vector3f;
-
 import minecraft_clone.engine.DisplayManager;
 import minecraft_clone.engine.InputManager;
 import minecraft_clone.engine.Loader;
@@ -11,6 +9,7 @@ import minecraft_clone.entity.Camera;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
 import minecraft_clone.world.Chunk;
+import minecraft_clone.world.ChunkManager;
 
 import static org.lwjgl.opengl.GL13.*;
 
@@ -27,6 +26,7 @@ public class Minecraft {
     private TextureAtlas atlas;
     private Texture texture;
     private List<Chunk> chunks = new ArrayList<>();
+    private ChunkManager chunkManager;
 
     public Minecraft() {
         displayManager = new DisplayManager();
@@ -43,15 +43,10 @@ public class Minecraft {
         camera = new Camera();
         atlas = new TextureAtlas(256, 16);
         texture = new Texture("textures/terrain.png");
+        chunkManager = new ChunkManager(loader, atlas);
 
-        Chunk chunk = new Chunk(new Vector3f(0, 0, 0), loader, atlas);
-        Chunk chunkEast = new Chunk(new Vector3f(16, 0, 0), loader, atlas);
-        chunk.setNeighbor(0, chunkEast); // Set +x neighbor
-        chunkEast.setNeighbor(1, chunk); // Set -x neighbor
-        chunks.add(chunk);
-        chunk.generateMesh();
-        chunks.add(chunkEast);
-        chunkEast.generateMesh();
+        chunkManager.generateChunks(1);
+        chunks.addAll(chunkManager.getChunks().values());
     }
 
     public void update(float deltaTime) {
