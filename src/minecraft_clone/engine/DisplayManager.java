@@ -25,7 +25,6 @@ public class DisplayManager {
 
     public void updateDisplay() {
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     public void clearDisplay() {

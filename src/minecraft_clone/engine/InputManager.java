@@ -13,8 +13,8 @@ public class InputManager {
     private static double lastX = 0;
     private static double lastY = 0;
     private static boolean firstMouse = true;
-    public static float deltaX = 0;
-    public static float deltaY = 0;
+    public static float totalDeltaX = 0;
+    public static float totalDeltaY = 0;
     private static float smoothedDeltaX = 0;
     private static float smoothedDeltaY = 0;
     private static final float SMOOTHING_FACTOR = 0.3f;
@@ -37,8 +37,8 @@ public class InputManager {
                     firstMouse = false;
                 }
 
-                deltaX = (float) (xPos - lastX);
-                deltaY = (float) (lastY - yPos);
+                totalDeltaX += (float) (xPos - lastX);
+                totalDeltaY += (float) (lastY - yPos);
                 lastX = xPos;
                 lastY = yPos;
             }
@@ -61,8 +61,8 @@ public class InputManager {
     public void updateCamera(Camera camera, float deltaTime) {
         float cappedDeltaTime = Math.min(deltaTime, 0.05f);
 
-        smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + deltaX * (1.0f - SMOOTHING_FACTOR);
-        smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + deltaY * (1.0f - SMOOTHING_FACTOR);
+        smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + totalDeltaX * (1.0f - SMOOTHING_FACTOR);
+        smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + totalDeltaY * (1.0f - SMOOTHING_FACTOR);
         // Calculate movement vector based on keyboard input
         Vector3f movement = new Vector3f();
         if (isKeyPressed(GLFW.GLFW_KEY_W)) {
@@ -95,8 +95,8 @@ public class InputManager {
     }
 
     public void resetMouseDelta() {
-        deltaX = 0;
-        deltaY = 0;
+        totalDeltaX = 0;
+        totalDeltaY = 0;
     }
 
     public void freeInputCallbacks() {
