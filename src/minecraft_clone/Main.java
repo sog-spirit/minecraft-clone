@@ -14,7 +14,7 @@ public class Main {
 
         float lastFrameTime = (float) glfwGetTime();
         float accumulatedTime = 0.0f;
-        float fixedTimeStep = 1.0f / 60.0f;
+        float fixedTimeStep = 1.0f / 64.0f;
 
         while (!glfwWindowShouldClose(minecraft.getWindow())) {
             float currentFrameTime = (float) glfwGetTime();
@@ -24,6 +24,7 @@ public class Main {
             accumulatedTime += deltaTime;
 
             while (accumulatedTime >= fixedTimeStep) {
+                glfwPollEvents();
                 minecraft.update(fixedTimeStep);
                 accumulatedTime -= fixedTimeStep;
             }
