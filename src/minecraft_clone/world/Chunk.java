@@ -17,13 +17,19 @@ public class Chunk {
     private Vector3f position;
     private Loader loader;
     private TextureAtlas atlas;
+    private Chunk[] neighbors; // 0: +x, 1: -x, 2: +z, 3: -z
 
     public Chunk(Vector3f position, Loader loader, TextureAtlas atlas) {
         this.position = position;
         this.loader = loader;
         this.atlas = atlas;
         this.blocks = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+        this.neighbors = new Chunk[4];
         generateTerrain();
+    }
+
+    public void setNeighbor(int direction, Chunk neighbor) {
+        neighbors[direction] = neighbor;
     }
 
     private void generateTerrain() {
@@ -80,12 +86,40 @@ public class Chunk {
     }
 
     private boolean isFaceVisible(int x, int y, int z) {
-        // Check if the adjacent position is outside the chunk or contains air
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
-            return true; // Adjacent to another chunk (assume visible for simplicity)
+     // Check if the position is within the current chunk
+        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE) {
+            Block adjacent = blocks[x][y][z];
+            return adjacent == null || adjacent.getType() == BlockType.AIR;
+        } else {
+            // Handle out-of-bounds cases by checking adjacent chunks
+            int chunkX = (x < 0) ? -1 : (x >= CHUNK_SIZE ? 1 : 0);
+            int chunkZ = (z < 0) ? -1 : (z >= CHUNK_SIZE ? 1 : 0);
+            int blockX = (x + CHUNK_SIZE) % CHUNK_SIZE;
+            int blockY = y; // Assuming y stays within bounds for simplicity
+            int blockZ = (z + CHUNK_SIZE) % CHUNK_SIZE;
+
+            // Get the neighboring chunk
+            Chunk neighbor = getNeighbor(chunkX, chunkZ);
+            if (neighbor != null) {
+                Block adjacent = neighbor.getBlock(blockX, blockY, blockZ);
+                return adjacent == null || adjacent.getType() == BlockType.AIR;
+            } else {
+                return true; // No neighbor available, assume visible
+            }
         }
-        Block adjacent = blocks[x][y][z];
-        return adjacent == null || adjacent.getType() == BlockType.AIR;
+    }
+
+    private Chunk getNeighbor(int chunkX, int chunkZ) {
+        if (chunkX == 1 && chunkZ == 0) return neighbors[0]; // +x
+        if (chunkX == -1 && chunkZ == 0) return neighbors[1]; // -x
+        if (chunkX == 0 && chunkZ == 1) return neighbors[2]; // +z
+        if (chunkX == 0 && chunkZ == -1) return neighbors[3]; // -z
+        return null; // No diagonal neighbors for simplicity
+    }
+
+    private Block getBlock(int x, int y, int z) {
+        if (y < 0 || y >= CHUNK_SIZE) return null; // Out of vertical bounds
+        return blocks[x][y][z];
     }
 
     private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z) {

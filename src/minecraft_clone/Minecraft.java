@@ -44,13 +44,14 @@ public class Minecraft {
         atlas = new TextureAtlas(256, 16);
         texture = new Texture("textures/terrain.png");
 
-        for (int x = -1; x <= 1; x++) {
-            for (int z = -1; z <= 1; z++) {
-                Chunk chunk = new Chunk(new Vector3f(x * 16, 0, z * 16), loader, atlas);
-                chunk.generateMesh();
-                chunks.add(chunk);
-            }
-        }
+        Chunk chunk = new Chunk(new Vector3f(0, 0, 0), loader, atlas);
+        Chunk chunkEast = new Chunk(new Vector3f(16, 0, 0), loader, atlas);
+        chunk.setNeighbor(0, chunkEast); // Set +x neighbor
+        chunkEast.setNeighbor(1, chunk); // Set -x neighbor
+        chunks.add(chunk);
+        chunk.generateMesh();
+        chunks.add(chunkEast);
+        chunkEast.generateMesh();
     }
 
     public void update(float deltaTime) {
