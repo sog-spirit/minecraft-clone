@@ -12,34 +12,17 @@ public class Loader {
     private List<Integer> vertexArrayObjects = new ArrayList<>();
     private List<Integer> vertexBufferObjects = new ArrayList<>();
 
-    public RawModel loadToVertexArrayObject(float[] positions) {
-        int vertexArrayObjectID = glGenVertexArrays();
-        glBindVertexArray(vertexArrayObjectID);
-
-        int vertexBufferObjectID = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjectID);
-        glBufferData(GL_ARRAY_BUFFER, positions, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-
-        vertexArrayObjects.add(vertexArrayObjectID);
-        vertexBufferObjects.add(vertexBufferObjectID);
-
-        return new RawModel(vertexArrayObjectID, positions.length / 3);
-    }
-
     public RawModel loadToVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
         int vertexArrayObjectID = createVertexArrayObject();
         IntBuffer intBuffer = bindIndicesBuffer(indices);
-        FloatBuffer floatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
-        FloatBuffer floatBuffer2 = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
+        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        FloatBuffer colorFloatBuffer = storeDataInAttributeList(2, 3, vertexSize, vertices);
         unbindVertexArrayObject();
         memFree(intBuffer);
-        memFree(floatBuffer);
-        memFree(floatBuffer2);
+        memFree(positionFloatBuffer);
+        memFree(uvMappingFloatBuffer);
+        memFree(colorFloatBuffer);
         return new RawModel(vertexArrayObjectID, indices.length);
     }
 
@@ -73,8 +56,20 @@ public class Loader {
         FloatBuffer buffer = storeDataInFloatBuffer(data);
         glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
 
-        glVertexAttribPointer(attributeNumber, size, GL_FLOAT, false, vertexSize * Float.BYTES, attributeNumber == 0 ? 0 : 3 * Float.BYTES);
-        glEnableVertexAttribArray(attributeNumber);
+        switch (attributeNumber) {
+        case 0 -> {
+            glVertexAttribPointer(attributeNumber, size, GL_FLOAT, false, vertexSize * Float.BYTES, 0); // position
+            glEnableVertexAttribArray(attributeNumber);
+        }
+        case 1 -> {
+            glVertexAttribPointer(attributeNumber, size, GL_FLOAT, false, vertexSize * Float.BYTES, 3 * Float.BYTES); // UV
+            glEnableVertexAttribArray(attributeNumber);
+        }
+        case 2 -> {
+            glVertexAttribPointer(attributeNumber, size, GL_FLOAT, false, vertexSize * Float.BYTES, 5 * Float.BYTES); // Color
+            glEnableVertexAttribArray(attributeNumber);
+        }
+        }
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         return buffer;

@@ -87,17 +87,22 @@ public class Chunk {
         }
 
         // Load into VAO
-        model = loader.loadToVertexArrayObject(vertices, indices, 5); // 5 floats per vertex
+        model = loader.loadToVertexArrayObject(vertices, indices, 8); // 8 floats per vertex
     }
 
     private void addVisibleFaces(int x, int y, int z, BlockType type, List<Float> vertices, List<Integer> indices) {
         float[] cubeVertices = CubeModel.getCube(atlas, type);
-        if (isFaceVisible(x, y + 1, z)) addFace(vertices, indices, cubeVertices, 16, 20, x, y, z); // Top
-        if (isFaceVisible(x, y - 1, z)) addFace(vertices, indices, cubeVertices, 20, 24, x, y, z); // Bottom
-        if (isFaceVisible(x, y, z + 1)) addFace(vertices, indices, cubeVertices, 0, 4, x, y, z);   // Front
-        if (isFaceVisible(x, y, z - 1)) addFace(vertices, indices, cubeVertices, 4, 8, x, y, z);   // Back
-        if (isFaceVisible(x - 1, y, z)) addFace(vertices, indices, cubeVertices, 8, 12, x, y, z);  // Left
-        if (isFaceVisible(x + 1, y, z)) addFace(vertices, indices, cubeVertices, 12, 16, x, y, z); // Right
+        if (isFaceVisible(x, y + 1, z)) {
+            float r = (type == BlockType.GRASS) ? 0.4863f : 1.0f;
+            float g = (type == BlockType.GRASS) ? 0.7412f : 1.0f;
+            float b = (type == BlockType.GRASS) ? 0.2706f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 16, 20, x, y, z, r, g, b); // Top
+        }
+        if (isFaceVisible(x, y - 1, z)) addFace(vertices, indices, cubeVertices, 20, 24, x, y, z, 1.0f, 1.0f, 1.0f); // Bottom
+        if (isFaceVisible(x, y, z + 1)) addFace(vertices, indices, cubeVertices, 0, 4, x, y, z, 1.0f, 1.0f, 1.0f);   // Front
+        if (isFaceVisible(x, y, z - 1)) addFace(vertices, indices, cubeVertices, 4, 8, x, y, z, 1.0f, 1.0f, 1.0f);   // Back
+        if (isFaceVisible(x - 1, y, z)) addFace(vertices, indices, cubeVertices, 8, 12, x, y, z, 1.0f, 1.0f, 1.0f);  // Left
+        if (isFaceVisible(x + 1, y, z)) addFace(vertices, indices, cubeVertices, 12, 16, x, y, z, 1.0f, 1.0f, 1.0f); // Right
     }
 
     private boolean isFaceVisible(int x, int y, int z) {
@@ -137,8 +142,9 @@ public class Chunk {
         return blocks[x][y][z];
     }
 
-    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z) {
-        int startIndex = vertices.size() / 5; // Current vertex count before adding this face
+//    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z) {
+    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z, float r, float g, float b) {
+        int startIndex = vertices.size() / 8; // Current vertex count before adding this face
         // Add the 4 vertices for this face
         for (int i = vertexStart; i < vertexEnd; i++) {
             vertices.add(cubeVertices[i * 5] + x);      // x position
@@ -146,6 +152,9 @@ public class Chunk {
             vertices.add(cubeVertices[i * 5 + 2] + z);  // z position
             vertices.add(cubeVertices[i * 5 + 3]);      // u coordinate
             vertices.add(cubeVertices[i * 5 + 4]);      // v coordinate
+            vertices.add(r);                            // red
+            vertices.add(g);                            // green
+            vertices.add(b);                            // blue
         }
         // Add indices for two triangles: 0,1,2 and 2,3,0
         indices.add(startIndex + 0);
