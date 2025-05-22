@@ -16,7 +16,7 @@ import static org.lwjgl.opengl.GL13.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Minecraft {
+public class Minecraft implements DefaultGame {
     private DisplayManager displayManager;
     private InputManager inputManager;
     private Loader loader;
@@ -33,6 +33,7 @@ public class Minecraft {
         inputManager = new InputManager();
     }
 
+    @Override
     public void init() {
         displayManager.createDisplay("Minecraft clone", 800, 600);
         inputManager.setupCallbacks(displayManager.getWindow());
@@ -49,10 +50,12 @@ public class Minecraft {
         chunks.addAll(chunkManager.getChunks().values());
     }
 
+    @Override
     public void update(float deltaTime) {
         inputManager.updateCamera(camera, deltaTime);
     }
 
+    @Override
     public void render() {
         displayManager.clearDisplay();
 
@@ -70,6 +73,7 @@ public class Minecraft {
         displayManager.updateDisplay();
     }
 
+    @Override
     public void cleanup() {
         shader.cleanup();
         loader.cleanup();
@@ -77,6 +81,7 @@ public class Minecraft {
         displayManager.closeDisplay();
     }
 
+    @Override
     public long getWindow() {
         return displayManager.getWindow();
     }
