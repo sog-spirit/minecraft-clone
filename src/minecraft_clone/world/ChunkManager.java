@@ -5,16 +5,16 @@ import java.util.Map;
 
 import org.joml.Vector3f;
 
-import minecraft_clone.engine.Loader;
+import minecraft_clone.engine.BaseLoader;
 import minecraft_clone.render.TextureAtlas;
 
 public class ChunkManager {
     private Map<String, Chunk> chunks;
-    private Loader loader;
+    private BaseLoader loader;
     private TextureAtlas atlas;
     private PerlinNoise noise;
 
-    public ChunkManager(Loader loader, TextureAtlas atlas) {
+    public ChunkManager(BaseLoader loader, TextureAtlas atlas) {
         this.chunks = new HashMap<>();
         this.loader = loader;
         this.atlas = atlas;

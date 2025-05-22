@@ -8,10 +8,11 @@ import java.util.List;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
-public class Loader {
+public class Loader implements BaseLoader {
     private List<Integer> vertexArrayObjects = new ArrayList<>();
     private List<Integer> vertexBufferObjects = new ArrayList<>();
 
+    @Override
     public RawModel loadToVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
         int vertexArrayObjectID = createVertexArrayObject();
         IntBuffer intBuffer = bindIndicesBuffer(indices);
@@ -81,6 +82,7 @@ public class Loader {
         return floatBuffer;
     }
 
+    @Override
     public void cleanup() {
         for (int vertexArrayObject : this.vertexArrayObjects) {
             glDeleteVertexArrays(vertexArrayObject);

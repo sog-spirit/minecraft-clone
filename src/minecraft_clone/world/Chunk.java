@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.joml.Vector3f;
 
-import minecraft_clone.engine.Loader;
+import minecraft_clone.engine.BaseLoader;
 import minecraft_clone.engine.RawModel;
 import minecraft_clone.render.CubeModel;
 import minecraft_clone.render.TextureAtlas;
@@ -15,12 +15,12 @@ public class Chunk {
     private Block[][][] blocks;
     private RawModel model;
     private Vector3f position;
-    private Loader loader;
+    private BaseLoader loader;
     private TextureAtlas atlas;
     private Chunk[] neighbors; // 0: +x, 1: -x, 2: +z, 3: -z
     private PerlinNoise noise;
 
-    public Chunk(Vector3f position, Loader loader, TextureAtlas atlas, PerlinNoise noise) {
+    public Chunk(Vector3f position, BaseLoader loader, TextureAtlas atlas, PerlinNoise noise) {
         this.position = position;
         this.loader = loader;
         this.atlas = atlas;

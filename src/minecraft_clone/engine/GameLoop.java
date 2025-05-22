@@ -1,14 +1,14 @@
 package minecraft_clone.engine;
 
-import minecraft_clone.DefaultGame;
+import minecraft_clone.BaseGame;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 public class GameLoop {
-    private final DefaultGame game;
+    private final BaseGame game;
     private final float fixedTimeStep;
 
-    public GameLoop(DefaultGame game, float fixedTimeStep) {
+    public GameLoop(BaseGame game, float fixedTimeStep) {
         this.game = game;
         this.fixedTimeStep = fixedTimeStep;
     }

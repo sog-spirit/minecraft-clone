@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 
 import static org.lwjgl.opengl.GL20.*;
 
-public class Shader {
+public class Shader implements BaseShader {
     private final int programID;
 
     public Shader(String vertexPath, String fragmentPath) {
@@ -48,35 +48,23 @@ public class Shader {
         }
     }
 
+    @Override
     public void start() {
         glUseProgram(programID);
     }
 
+    @Override
     public void stop() {
         glUseProgram(0);
     }
 
+    @Override
     public void cleanup() {
         glDeleteProgram(programID);
     }
 
-    public void loadModelMatrix(Matrix4f matrix) {
-        loadMatrix("model", matrix);
-    }
-
-    public void loadViewMatrix(Matrix4f matrix) {
-        loadMatrix("view", matrix);
-    }
-
-    public void loadProjectionMatrix(Matrix4f matrix) {
-        loadMatrix("projection", matrix);
-    }
-
-    public void loadTextureSampler() {
-        loadUniform("textureSampler", 0);
-    }
-
-    private void loadMatrix(String name, Matrix4f matrix) {
+    @Override
+    public void loadUniformMatrix4f(String name, Matrix4f matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             FloatBuffer floatBuffer = stack.mallocFloat(16);
             matrix.get(floatBuffer);
@@ -84,7 +72,8 @@ public class Shader {
         }
     }
 
-    private void loadUniform(String name, int value) {
+    @Override
+    public void loadUniformInt(String name, int value) {
         int location = glGetUniformLocation(programID, name);
         glUniform1i(location, value);
     }

@@ -9,7 +9,7 @@ public class Main {
         Configuration.DEBUG.set(true);
         Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
 
-        DefaultGame game = new Minecraft();
+        BaseGame game = new Minecraft();
         game.init();
 
         GameLoop gameLoop = new GameLoop(game, 1.0f / 64.0f);

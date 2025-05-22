@@ -1,5 +1,7 @@
 package minecraft_clone;
 
+import minecraft_clone.engine.BaseLoader;
+import minecraft_clone.engine.BaseShader;
 import minecraft_clone.engine.DisplayManager;
 import minecraft_clone.engine.InputManager;
 import minecraft_clone.engine.Loader;
@@ -11,16 +13,14 @@ import minecraft_clone.render.TextureAtlas;
 import minecraft_clone.world.Chunk;
 import minecraft_clone.world.ChunkManager;
 
-import static org.lwjgl.opengl.GL13.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class Minecraft implements DefaultGame {
+public class Minecraft implements BaseGame {
     private DisplayManager displayManager;
     private InputManager inputManager;
-    private Loader loader;
-    private Shader shader;
+    private BaseLoader loader;
+    private BaseShader shader;
     private Renderer renderer;
     private Camera camera;
     private TextureAtlas atlas;
@@ -37,15 +37,14 @@ public class Minecraft implements DefaultGame {
     public void init() {
         displayManager.createDisplay("Minecraft clone", 800, 600);
         inputManager.setupCallbacks(displayManager.getWindow());
+        camera = new Camera();
+        renderer = new Renderer(camera, displayManager);
 
         loader = new Loader();
         shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
-        renderer = new Renderer();
-        camera = new Camera();
         atlas = new TextureAtlas(256, 16);
         texture = new Texture("textures/terrain.png");
         chunkManager = new ChunkManager(loader, atlas);
-
         chunkManager.generateChunks(1);
         chunks.addAll(chunkManager.getChunks().values());
     }
@@ -59,16 +58,9 @@ public class Minecraft implements DefaultGame {
     public void render() {
         displayManager.clearDisplay();
 
-        shader.start();
-        shader.loadViewMatrix(camera.getViewMatrix());
-        shader.loadProjectionMatrix(camera.getProjectionMatrix(displayManager.getWidth(), displayManager.getHeight()));
-        shader.loadTextureSampler();
-        glActiveTexture(GL_TEXTURE0);
-        texture.bind();
         for (Chunk chunk : chunks) {
-            renderer.renderChunk(chunk, shader);
+            renderer.renderChunk(chunk, shader, texture);
         }
-        shader.stop();
 
         displayManager.updateDisplay();
     }
