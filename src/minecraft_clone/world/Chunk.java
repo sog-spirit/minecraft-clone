@@ -142,7 +142,6 @@ public class Chunk {
         return blocks[x][y][z];
     }
 
-//    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z) {
     private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z, float r, float g, float b) {
         int startIndex = vertices.size() / 8; // Current vertex count before adding this face
         // Add the 4 vertices for this face

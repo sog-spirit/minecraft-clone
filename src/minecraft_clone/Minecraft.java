@@ -8,6 +8,7 @@ import minecraft_clone.engine.Loader;
 import minecraft_clone.engine.Renderer;
 import minecraft_clone.engine.Shader;
 import minecraft_clone.entity.Camera;
+import minecraft_clone.hud.Crosshair;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
 import minecraft_clone.world.Chunk;
@@ -20,13 +21,16 @@ public class Minecraft implements BaseGame {
     private DisplayManager displayManager;
     private InputManager inputManager;
     private BaseLoader loader;
-    private BaseShader shader;
+    private BaseShader chunkShader;
+    private BaseShader crosshairShader;
     private Renderer renderer;
     private Camera camera;
     private TextureAtlas atlas;
-    private Texture texture;
+    private Texture terrainTexture;
+    private Texture iconsTexture;
     private List<Chunk> chunks = new ArrayList<>();
     private ChunkManager chunkManager;
+    private Crosshair crosshair;
 
     public Minecraft() {
         displayManager = new DisplayManager();
@@ -41,12 +45,17 @@ public class Minecraft implements BaseGame {
         renderer = new Renderer(camera, displayManager);
 
         loader = new Loader();
-        shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+        chunkShader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+        crosshairShader = new Shader("shaders/crosshair_vertex.glsl", "shaders/crosshair_fragment.glsl");
         atlas = new TextureAtlas(256, 16);
-        texture = new Texture("textures/terrain.png");
+        terrainTexture = new Texture("textures/terrain.png");
+        iconsTexture = new Texture("textures/icons.png");
         chunkManager = new ChunkManager(loader, atlas);
         chunkManager.generateChunks(1);
         chunks.addAll(chunkManager.getChunks().values());
+
+        crosshair = new Crosshair(loader, atlas);
+        crosshair.generateMesh(displayManager);
     }
 
     @Override
@@ -59,15 +68,17 @@ public class Minecraft implements BaseGame {
         displayManager.clearDisplay();
 
         for (Chunk chunk : chunks) {
-            renderer.renderChunk(chunk, shader, texture);
+            renderer.renderChunk(chunk, chunkShader, terrainTexture);
         }
+
+        renderer.renderCrosshair(crosshair, crosshairShader, iconsTexture);
 
         displayManager.updateDisplay();
     }
 
     @Override
     public void cleanup() {
-        shader.cleanup();
+        chunkShader.cleanup();
         loader.cleanup();
         inputManager.freeInputCallbacks();
         displayManager.closeDisplay();

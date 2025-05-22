@@ -27,6 +27,19 @@ public class Loader implements BaseLoader {
         return new RawModel(vertexArrayObjectID, indices.length);
     }
 
+    @Override
+    public RawModel loadTo2DVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
+        int vertexArrayObjectID = createVertexArrayObject();
+        IntBuffer intBuffer = bindIndicesBuffer(indices);
+        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 2, vertexSize, vertices); // position (x, y)
+        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        unbindVertexArrayObject();
+        memFree(intBuffer);
+        memFree(positionFloatBuffer);
+        memFree(uvMappingFloatBuffer);
+        return new RawModel(vertexArrayObjectID, indices.length);
+    }
+
     private int createVertexArrayObject() {
         int vertexArrayObjectID = glGenVertexArrays();
         vertexArrayObjects.add(vertexArrayObjectID);

@@ -1,6 +1,7 @@
 package minecraft_clone.engine;
 
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.FloatBuffer;
@@ -76,5 +77,11 @@ public class Shader implements BaseShader {
     public void loadUniformInt(String name, int value) {
         int location = glGetUniformLocation(programID, name);
         glUniform1i(location, value);
+    }
+
+    @Override
+    public void loadUniformVector2f(String name, Vector2f value) {
+        int location = glGetUniformLocation(programID, name);
+        glUniform2f(location, value.x(), value.y());
     }
 }
