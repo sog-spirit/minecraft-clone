@@ -2,12 +2,8 @@ package minecraft_clone.engine;
 
 import static org.lwjgl.glfw.GLFW.*;
 
-import org.joml.Vector3f;
-import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
-
-import minecraft_clone.entity.Camera;
 
 public class InputManager {
     private static double lastX = 0;
@@ -58,38 +54,6 @@ public class InputManager {
         glfwSetKeyCallback(win, keyCallback);
     }
 
-    public void updateCamera(Camera camera, float deltaTime) {
-        float cappedDeltaTime = Math.min(deltaTime, 0.05f);
-
-        smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + totalDeltaX * (1.0f - SMOOTHING_FACTOR);
-        smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + totalDeltaY * (1.0f - SMOOTHING_FACTOR);
-        // Calculate movement vector based on keyboard input
-        Vector3f movement = new Vector3f();
-        if (isKeyPressed(GLFW.GLFW_KEY_W)) {
-            movement.add(camera.getForward()); // Move forward
-        }
-        if (isKeyPressed(GLFW.GLFW_KEY_S)) {
-            movement.add(camera.getForward().mul(-1)); // Move backward
-        }
-        if (isKeyPressed(GLFW.GLFW_KEY_A)) {
-            movement.add(camera.getRight()); // Move left
-        }
-        if (isKeyPressed(GLFW.GLFW_KEY_D)) {
-            movement.add(camera.getRight().mul(-1)); // Move right
-        }
-
-        // If there’s any movement, normalize and scale by speed and deltaTime
-        if (movement.lengthSquared() > 0) {
-            movement.normalize().mul(speed * deltaTime);
-            camera.move(movement);
-        }
-
-        // Calculate rotation based on mouse movement
-        float rotationSpeed = sensitivity * 60.0f; // Normalize to 60 FPS base
-        camera.rotate(smoothedDeltaX * rotationSpeed * cappedDeltaTime, smoothedDeltaY * rotationSpeed * cappedDeltaTime);
-        resetMouseDelta(); // Reset deltas after applying rotation
-    }
-
     public static boolean isKeyPressed(int key) {
         return glfwGetKey(window, key) == GLFW_PRESS;
     }
@@ -102,5 +66,26 @@ public class InputManager {
     public void freeInputCallbacks() {
         cursorCallback.free();
         keyCallback.free();
+    }
+
+    public void updateSmoothedDeltas() {
+        smoothedDeltaX = smoothedDeltaX * SMOOTHING_FACTOR + totalDeltaX * (1.0f - SMOOTHING_FACTOR);
+        smoothedDeltaY = smoothedDeltaY * SMOOTHING_FACTOR + totalDeltaY * (1.0f - SMOOTHING_FACTOR);
+    }
+
+    public float getSensitivity() {
+        return sensitivity;
+    }
+
+    public float getSmoothedDeltaX() {
+        return smoothedDeltaX;
+    }
+
+    public float getSmoothedDeltaY() {
+        return smoothedDeltaY;
+    }
+
+    public float getSpeed() {
+        return speed;
     }
 }

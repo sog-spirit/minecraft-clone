@@ -2,6 +2,9 @@ package minecraft_clone.entity;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
+
+import minecraft_clone.engine.InputManager;
 
 public class Camera {
     private Vector3f position; // Camera position in 3D space
@@ -13,6 +16,34 @@ public class Camera {
         position = new Vector3f(0, 0, 0);
         yaw = 270;
         pitch = 0;
+    }
+
+    public void update(float deltaTime, InputManager inputManager) {
+        float cappedDeltaTime = Math.min(deltaTime, 0.05f);
+
+        inputManager.updateSmoothedDeltas();
+        Vector3f movement = new Vector3f();
+        if (InputManager.isKeyPressed(GLFW.GLFW_KEY_W)) {
+            movement.add(getForward()); // Move forward
+        }
+        if (InputManager.isKeyPressed(GLFW.GLFW_KEY_S)) {
+            movement.add(getForward().mul(-1)); // Move backward
+        }
+        if (InputManager.isKeyPressed(GLFW.GLFW_KEY_A)) {
+            movement.add(getRight()); // Move left
+        }
+        if (InputManager.isKeyPressed(GLFW.GLFW_KEY_D)) {
+            movement.add(getRight().mul(-1)); // Move right
+        }
+
+        if (movement.lengthSquared() > 0) {
+            movement.normalize().mul(inputManager.getSpeed() * deltaTime);
+            move(movement);
+        }
+
+        float rotationSpeed = inputManager.getSensitivity() * 60.0f;
+        rotate(inputManager.getSmoothedDeltaX() * rotationSpeed * cappedDeltaTime, inputManager.getSmoothedDeltaY() * rotationSpeed * cappedDeltaTime);
+        inputManager.resetMouseDelta();
     }
 
     // Move the camera by adding a displacement vector to its position

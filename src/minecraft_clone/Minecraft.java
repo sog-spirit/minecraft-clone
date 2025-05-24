@@ -60,7 +60,7 @@ public class Minecraft implements BaseGame {
 
     @Override
     public void update(float deltaTime) {
-        inputManager.updateCamera(camera, deltaTime);
+        camera.update(deltaTime, inputManager);
     }
 
     @Override
