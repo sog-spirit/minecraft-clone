@@ -37,8 +37,20 @@ public class Block {
         return properties.textureTop;
     }
 
-    public int[] getSideTextureId() {
-        return properties.textureSide;
+    public int[] getLeftTextureId() {
+        return properties.textureLeft;
+    }
+
+    public int[] getRightTextureId() {
+        return properties.textureRight;
+    }
+
+    public int[] getFrontTextureId() {
+        return properties.textureFront;
+    }
+
+    public int[] getBackTextureId() {
+        return properties.textureBack;
     }
 
     public int[] getBottomTextureId() {
@@ -50,7 +62,10 @@ public class Block {
         return switch (face) {
             case TOP -> getTopTextureId();
             case BOTTOM -> getBottomTextureId();
-            case LEFT, RIGHT, FRONT, BACK -> getSideTextureId();
+            case LEFT -> getLeftTextureId();
+            case RIGHT -> getRightTextureId();
+            case FRONT -> getFrontTextureId();
+            case BACK -> getBackTextureId();
         };
     }
 

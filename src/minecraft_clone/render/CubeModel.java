@@ -8,33 +8,36 @@ public class CubeModel {
     public static float[] getCube(TextureAtlas atlas, BlockType type) {
         BlockProperties blockProperties = BlockRegistry.get(type);
         float[] topUVs    = atlas.getUVCoords(blockProperties.textureTop[0], blockProperties.textureTop[1]);
-        float[] sideUVs   = atlas.getUVCoords(blockProperties.textureSide[0], blockProperties.textureSide[1]);
+        float[] frontUVs  = atlas.getUVCoords(blockProperties.textureFront[0], blockProperties.textureFront[1]);
+        float[] backUVs   = atlas.getUVCoords(blockProperties.textureBack[0], blockProperties.textureBack[1]);
+        float[] leftUVs   = atlas.getUVCoords(blockProperties.textureLeft[0], blockProperties.textureLeft[1]);
+        float[] rightUVs  = atlas.getUVCoords(blockProperties.textureRight[0], blockProperties.textureRight[1]);
         float[] bottomUVs = atlas.getUVCoords(blockProperties.textureBottom[0], blockProperties.textureBottom[1]);
 
         return new float[]{
                 // FRONT
-                -0.5f, -0.5f,  0.5f, sideUVs[0], sideUVs[1],
-                 0.5f, -0.5f,  0.5f, sideUVs[2], sideUVs[3],
-                 0.5f,  0.5f,  0.5f, sideUVs[4], sideUVs[5],
-                -0.5f,  0.5f,  0.5f, sideUVs[6], sideUVs[7],
+                -0.5f, -0.5f,  0.5f, frontUVs[0], frontUVs[1],
+                 0.5f, -0.5f,  0.5f, frontUVs[2], frontUVs[3],
+                 0.5f,  0.5f,  0.5f, frontUVs[4], frontUVs[5],
+                -0.5f,  0.5f,  0.5f, frontUVs[6], frontUVs[7],
 
                 // BACK
-                -0.5f, -0.5f, -0.5f, sideUVs[0], sideUVs[1],
-                -0.5f,  0.5f, -0.5f, sideUVs[6], sideUVs[7],
-                 0.5f,  0.5f, -0.5f, sideUVs[4], sideUVs[5],
-                 0.5f, -0.5f, -0.5f, sideUVs[2], sideUVs[3],
+                -0.5f, -0.5f, -0.5f, backUVs[0], backUVs[1],
+                -0.5f,  0.5f, -0.5f, backUVs[6], backUVs[7],
+                 0.5f,  0.5f, -0.5f, backUVs[4], backUVs[5],
+                 0.5f, -0.5f, -0.5f, backUVs[2], backUVs[3],
 
                 // LEFT
-                -0.5f, -0.5f, -0.5f, sideUVs[0], sideUVs[1],
-                -0.5f, -0.5f,  0.5f, sideUVs[2], sideUVs[3],
-                -0.5f,  0.5f,  0.5f, sideUVs[4], sideUVs[5],
-                -0.5f,  0.5f, -0.5f, sideUVs[6], sideUVs[7],
+                -0.5f, -0.5f, -0.5f, leftUVs[0], leftUVs[1],
+                -0.5f, -0.5f,  0.5f, leftUVs[2], leftUVs[3],
+                -0.5f,  0.5f,  0.5f, leftUVs[4], leftUVs[5],
+                -0.5f,  0.5f, -0.5f, leftUVs[6], leftUVs[7],
 
                 // RIGHT
-                 0.5f, -0.5f, -0.5f, sideUVs[0], sideUVs[1],
-                 0.5f,  0.5f, -0.5f, sideUVs[6], sideUVs[7],
-                 0.5f,  0.5f,  0.5f, sideUVs[4], sideUVs[5],
-                 0.5f, -0.5f,  0.5f, sideUVs[2], sideUVs[3],
+                 0.5f, -0.5f, -0.5f, rightUVs[0], rightUVs[1],
+                 0.5f,  0.5f, -0.5f, rightUVs[6], rightUVs[7],
+                 0.5f,  0.5f,  0.5f, rightUVs[4], rightUVs[5],
+                 0.5f, -0.5f,  0.5f, rightUVs[2], rightUVs[3],
 
                 // TOP
                 -0.5f,  0.5f,  0.5f, topUVs[0], topUVs[1],

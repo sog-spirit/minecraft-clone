@@ -29,11 +29,11 @@ public class BlockRegistry {
         register(BlockType.GLASS,   new BlockProperties("Glass", true, false,  new int[] {1, 3}, new int[] {1, 3}, new int[] {1, 3}));
         register(BlockType.LAPIS_LAZULI_ORE,   new BlockProperties("Lapis lazuli ore", true, false,  new int[] {0, 10}, new int[] {0, 10}, new int[] {0, 10}));
         register(BlockType.LAPIS_LAZULI,   new BlockProperties("Lapis lazuli", true, false,  new int[] {0, 9}, new int[] {0, 9}, new int[] {0, 9}));
-//        register(BlockType.DISPENSER,   new BlockProperties("Dispenser", true, false,  new int[] {0, 9}, new int[] {0, 9}, new int[] {0, 9}));
+        register(BlockType.DISPENSER,   new BlockProperties("Dispenser", true, false,  new int[] {14, 3}, new int[] {14, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {14, 3}));
         register(BlockType.SANDSTONE,   new BlockProperties("Sandstone", true, false,  new int[] {0, 11}, new int[] {0, 12}, new int[] {0, 13}));
         register(BlockType.NOTE_BLOCK,   new BlockProperties("Note block", true, false,  new int[] {11, 4}, new int[] {10, 4}, new int[] {10, 4}));
-//        register(BlockType.STICKY_PISTON,   new BlockProperties("Sandstone", true, false,  new int[] {11, 4}, new int[] {10, 4}, new int[] {10, 4}));
-//        register(BlockType.PISTON,   new BlockProperties("Sandstone", true, false,  new int[] {11, 4}, new int[] {10, 4}, new int[] {10, 4}));
+        register(BlockType.STICKY_PISTON,   new BlockProperties("Sticky piston", true, false,  new int[] {10, 6}, new int[] {12, 6}, new int[] {13, 6}));
+        register(BlockType.PISTON,   new BlockProperties("Piston", true, false,  new int[] {11, 6}, new int[] {12, 6}, new int[] {13, 6}));
         register(BlockType.WHITE_WOOL,   new BlockProperties("White wool", true, false,  new int[] {0, 4}, new int[] {0, 4}, new int[] {0, 4}));
         register(BlockType.ORANGE_WOOL,   new BlockProperties("Orange wool", true, false,  new int[] {2, 13}, new int[] {2, 13}, new int[] {2, 13}));
         register(BlockType.MAGENTA_WOOL,   new BlockProperties("Magenta wool", true, false,  new int[] {2, 12}, new int[] {2, 12}, new int[] {2, 12}));
@@ -60,20 +60,20 @@ public class BlockRegistry {
 //        register(BlockType.CHEST,   new BlockProperties("Chest", true, false,  new int[] {5, 2}, new int[] {5, 2}, new int[] {5, 2}));
         register(BlockType.DIAMOND_ORE,   new BlockProperties("Diamond ore", true, false,  new int[] {2, 3}, new int[] {2, 3}, new int[] {2, 3}));
         register(BlockType.DIAMOND,   new BlockProperties("Diamond", true, false,  new int[] {8, 1}, new int[] {8, 1}, new int[] {8, 1}));
-//        register(BlockType.CRAFTING_TABLE,   new BlockProperties("Crafting table", true, false,  new int[] {8, 1}, new int[] {8, 1}, new int[] {8, 1}));
-//        register(BlockType.FARMLAND,   new BlockProperties("Farmland", true, false,  new int[] {8, 1}, new int[] {8, 1}, new int[] {8, 1}));
-//        register(BlockType.FURNACE,   new BlockProperties("Furnace", true, false,  new int[] {8, 1}, new int[] {8, 1}, new int[] {8, 1}));
+        register(BlockType.CRAFTING_TABLE,   new BlockProperties("Crafting table", true, false, new int[] {11, 2}, new int[] {11, 3}, new int[] {12, 3}, new int[] {4, 0}));
+        register(BlockType.FARMLAND,   new BlockProperties("Farmland", true, false,  new int[] {7, 5}, new int[] {2, 0}, new int[] {2, 0}));
+        register(BlockType.FURNACE,   new BlockProperties("Furnace", true, false,  new int[] {14, 3}, new int[] {12, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {14, 3}));
         register(BlockType.REDSTONE_ORE,   new BlockProperties("Redstone ore", true, false,  new int[] {3, 3}, new int[] {3, 3}, new int[] {3, 3}));
         register(BlockType.ICE,   new BlockProperties("Ice", true, false,  new int[] {3, 4}, new int[] {3, 4}, new int[] {3, 4}));
         register(BlockType.SNOW,   new BlockProperties("Snow", true, false,  new int[] {2, 4}, new int[] {2, 4}, new int[] {2, 4}));
         register(BlockType.CACTUS,   new BlockProperties("Cactus", true, false,  new int[] {7, 4}, new int[] {6, 4}, new int[] {5, 4}));
         register(BlockType.CLAY,   new BlockProperties("Clay", true, false,  new int[] {8, 4}, new int[] {8, 4}, new int[] {8, 4}));
         register(BlockType.JUKEBOX,   new BlockProperties("Jukebox", true, false,  new int[] {11, 4}, new int[] {10, 4}, new int[] {10, 4}));
-//        register(BlockType.PUMPKIN,   new BlockProperties("Pumpkin", true, false,  new int[] {11, 4}, new int[] {10, 4}, new int[] {10, 4}));
+        register(BlockType.PUMPKIN,   new BlockProperties("Pumpkin", true, false,  new int[] {6, 6}, new int[] {7, 7}, new int[] {6, 7}, new int[] {6, 7}, new int[] {6, 7}, new int[] {6, 7}));
         register(BlockType.NETHERRACK,   new BlockProperties("Netherack", true, false,  new int[] {7, 6}, new int[] {7, 6}, new int[] {7, 6}));
         register(BlockType.SOUL_SAND,   new BlockProperties("Soul sand", true, false,  new int[] {8, 6}, new int[] {8, 6}, new int[] {8, 6}));
         register(BlockType.GLOWSTONE,   new BlockProperties("Glowstone", true, false,  new int[] {9, 6}, new int[] {9, 6}, new int[] {9, 6}));
-//        register(BlockType.JACK_O_LANTERN,   new BlockProperties("Jack o lantern", true, false,  new int[] {9, 6}, new int[] {9, 6}, new int[] {9, 6}));
+        register(BlockType.JACK_O_LANTERN,   new BlockProperties("Jack o lantern", true, false,  new int[] {6, 6}, new int[] {8, 7}, new int[] {6, 7}, new int[] {6, 7}, new int[] {6, 7}, new int[] {6, 7}));
     }
 
     private static void register(BlockType type, BlockProperties props) {
