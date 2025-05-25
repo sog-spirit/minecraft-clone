@@ -26,7 +26,7 @@ public class BlockRegistry {
         register(BlockType.SPRUCE_LEAVES,   new BlockProperties("Spurce leaves", true, false,  new int[] {5, 8}, new int[] {5, 8}, new int[] {5, 8}));
         register(BlockType.BIRCH_LEAVES,   new BlockProperties("Birch leaves", true, false,  new int[] {5, 8}, new int[] {5, 8}, new int[] {5, 8}));
         register(BlockType.SPONGE,   new BlockProperties("Sponge", true, false,  new int[] {0, 3}, new int[] {0, 3}, new int[] {0, 3}));
-        register(BlockType.GLASS,   new BlockProperties("Glass", true, false,  new int[] {1, 3}, new int[] {1, 3}, new int[] {1, 3}));
+        register(BlockType.GLASS,   new BlockProperties("Glass", true, true,  new int[] {1, 3}, new int[] {1, 3}, new int[] {1, 3}));
         register(BlockType.LAPIS_LAZULI_ORE,   new BlockProperties("Lapis lazuli ore", true, false,  new int[] {0, 10}, new int[] {0, 10}, new int[] {0, 10}));
         register(BlockType.LAPIS_LAZULI,   new BlockProperties("Lapis lazuli", true, false,  new int[] {0, 9}, new int[] {0, 9}, new int[] {0, 9}));
         register(BlockType.DISPENSER,   new BlockProperties("Dispenser", true, false,  new int[] {14, 3}, new int[] {14, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {13, 2}, new int[] {14, 3}));

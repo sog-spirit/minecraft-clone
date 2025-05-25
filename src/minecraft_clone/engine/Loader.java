@@ -18,7 +18,7 @@ public class Loader implements BaseLoader {
         IntBuffer intBuffer = bindIndicesBuffer(indices);
         FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
         FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
-        FloatBuffer colorFloatBuffer = storeDataInAttributeList(2, 3, vertexSize, vertices);
+        FloatBuffer colorFloatBuffer = storeDataInAttributeList(2, 4, vertexSize, vertices); // color (r, g, b, a)
         unbindVertexArrayObject();
         memFree(intBuffer);
         memFree(positionFloatBuffer);

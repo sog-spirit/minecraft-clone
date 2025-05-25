@@ -67,9 +67,8 @@ public class Minecraft implements BaseGame {
     public void render() {
         displayManager.clearDisplay();
 
-        for (Chunk chunk : chunks) {
-            renderer.renderChunk(chunk, chunkShader, terrainTexture);
-        }
+        renderer.renderChunks(chunks, chunkShader, terrainTexture);
+
 
         renderer.renderCrosshair(crosshair, crosshairShader, iconsTexture);
 

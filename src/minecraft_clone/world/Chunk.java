@@ -13,7 +13,8 @@ import minecraft_clone.render.TextureAtlas;
 public class Chunk {
     public static final int CHUNK_SIZE = 16;
     private Block[][][] blocks;
-    private RawModel model;
+    private RawModel opaqueModel;
+    private RawModel transparentModel;
     private Vector3f position;
     private BaseLoader loader;
     private TextureAtlas atlas;
@@ -52,7 +53,7 @@ public class Chunk {
                     } else if (y < terrainHeight - 1) {
                         blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.DIRT);
                     } else if (y == terrainHeight - 1) {
-                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GRASS);
+                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GLASS);
                     } else {
                         blocks[x][y][z] = null; // Air
                     }
@@ -62,71 +63,157 @@ public class Chunk {
     }
 
     public void generateMesh() {
-        List<Float> verticesList = new ArrayList<>();
-        List<Integer> indicesList = new ArrayList<>();
+        List<Float> opaqueVerticesList = new ArrayList<>();
+        List<Integer> opaqueIndicesList = new ArrayList<>();
+        List<Float> transparentVerticesList = new ArrayList<>();
+        List<Integer> transparentIndicesList = new ArrayList<>();
 
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 for (int z = 0; z < CHUNK_SIZE; z++) {
                     Block block = blocks[x][y][z];
                     if (block != null && block.getType() != BlockType.AIR) {
-                        addVisibleFaces(x, y, z, block.getType(), verticesList, indicesList);
+                        BlockProperties props = BlockRegistry.get(block.getType());
+                        if (props.isTransparent && block.getType() != BlockType.AIR) {
+                            addVisibleFaces(x, y, z, block.getType(), transparentVerticesList, transparentIndicesList);
+                        } else {
+                            addVisibleFaces(x, y, z, block.getType(), opaqueVerticesList, opaqueIndicesList);
+                        }
                     }
                 }
             }
         }
 
-        // Convert to arrays
-        float[] vertices = new float[verticesList.size()];
-        for (int i = 0; i < verticesList.size(); i++) {
-            vertices[i] = verticesList.get(i);
-        }
-        int[] indices = new int[indicesList.size()];
-        for (int i = 0; i < indicesList.size(); i++) {
-            indices[i] = indicesList.get(i);
+        // Create opaque model
+        if (!opaqueVerticesList.isEmpty()) {
+            float[] opaqueVertices = new float[opaqueVerticesList.size()];
+            for (int i = 0; i < opaqueVerticesList.size(); i++) {
+                opaqueVertices[i] = opaqueVerticesList.get(i);
+            }
+            int[] opaqueIndices = new int[opaqueIndicesList.size()];
+            for (int i = 0; i < opaqueIndicesList.size(); i++) {
+                opaqueIndices[i] = opaqueIndicesList.get(i);
+            }
+            opaqueModel = loader.loadToVertexArrayObject(opaqueVertices, opaqueIndices, 9);
         }
 
-        // Load into VAO
-        model = loader.loadToVertexArrayObject(vertices, indices, 8); // 8 floats per vertex
+        // Create transparent model
+        if (!transparentVerticesList.isEmpty()) {
+            float[] transparentVertices = new float[transparentVerticesList.size()];
+            for (int i = 0; i < transparentVerticesList.size(); i++) {
+                transparentVertices[i] = transparentVerticesList.get(i);
+            }
+            int[] transparentIndices = new int[transparentIndicesList.size()];
+            for (int i = 0; i < transparentIndicesList.size(); i++) {
+                transparentIndices[i] = transparentIndicesList.get(i);
+            }
+            transparentModel = loader.loadToVertexArrayObject(transparentVertices, transparentIndices, 9);
+        }
     }
 
     private void addVisibleFaces(int x, int y, int z, BlockType type, List<Float> vertices, List<Integer> indices) {
         float[] cubeVertices = CubeModel.getCube(atlas, type);
-        if (isFaceVisible(x, y + 1, z)) {
+        BlockProperties props = BlockRegistry.get(type);
+        
+        // For transparent blocks, we need to render faces that are adjacent to air or other transparent blocks
+        // For opaque blocks, we only render faces adjacent to air or transparent blocks
+        
+        if (shouldRenderFace(x, y + 1, z, type)) {
             float r = (type == BlockType.GRASS) ? 0.4863f : 1.0f;
             float g = (type == BlockType.GRASS) ? 0.7412f : 1.0f;
             float b = (type == BlockType.GRASS) ? 0.2706f : 1.0f;
-            addFace(vertices, indices, cubeVertices, 16, 20, x, y, z, r, g, b); // Top
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 16, 20, x, y, z, r, g, b, alpha); // Top
         }
-        if (isFaceVisible(x, y - 1, z)) addFace(vertices, indices, cubeVertices, 20, 24, x, y, z, 1.0f, 1.0f, 1.0f); // Bottom
-        if (isFaceVisible(x, y, z + 1)) addFace(vertices, indices, cubeVertices, 0, 4, x, y, z, 1.0f, 1.0f, 1.0f);   // Front
-        if (isFaceVisible(x, y, z - 1)) addFace(vertices, indices, cubeVertices, 4, 8, x, y, z, 1.0f, 1.0f, 1.0f);   // Back
-        if (isFaceVisible(x - 1, y, z)) addFace(vertices, indices, cubeVertices, 8, 12, x, y, z, 1.0f, 1.0f, 1.0f);  // Left
-        if (isFaceVisible(x + 1, y, z)) addFace(vertices, indices, cubeVertices, 12, 16, x, y, z, 1.0f, 1.0f, 1.0f); // Right
+        if (shouldRenderFace(x, y - 1, z, type)) {
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 20, 24, x, y, z, 1.0f, 1.0f, 1.0f, alpha); // Bottom
+        }
+        if (shouldRenderFace(x, y, z + 1, type)) {
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 0, 4, x, y, z, 1.0f, 1.0f, 1.0f, alpha);   // Front
+        }
+        if (shouldRenderFace(x, y, z - 1, type)) {
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 4, 8, x, y, z, 1.0f, 1.0f, 1.0f, alpha);   // Back
+        }
+        if (shouldRenderFace(x - 1, y, z, type)) {
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 8, 12, x, y, z, 1.0f, 1.0f, 1.0f, alpha);  // Left
+        }
+        if (shouldRenderFace(x + 1, y, z, type)) {
+            float alpha = props.isTransparent ? 0.8f : 1.0f;
+            addFace(vertices, indices, cubeVertices, 12, 16, x, y, z, 1.0f, 1.0f, 1.0f, alpha); // Right
+        }
     }
 
-    private boolean isFaceVisible(int x, int y, int z) {
-     // Check if the position is within the current chunk
+    private boolean shouldRenderFace(int x, int y, int z, BlockType currentType) {
+        BlockProperties currentProps = BlockRegistry.get(currentType);
+        
+        // Check if the position is within the current chunk
         if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE) {
             Block adjacent = blocks[x][y][z];
-            return adjacent == null || adjacent.getType() == BlockType.AIR;
+            if (adjacent == null) {
+                return true; // Adjacent to air, always render
+            }
+            
+            BlockProperties adjacentProps = BlockRegistry.get(adjacent.getType());
+            
+            // If current block is opaque, only render face if adjacent is air or transparent
+            if (!currentProps.isTransparent) {
+                return adjacent.getType() == BlockType.AIR || adjacentProps.isTransparent;
+            }
+            
+            // For transparent blocks, be more selective to reduce z-fighting
+            if (currentProps.isTransparent) {
+                // Don't render transparent faces adjacent to the same transparent block type
+                if (adjacent.getType() == currentType) {
+                    return false;
+                }
+                // Don't render transparent faces directly adjacent to opaque blocks
+                // (this reduces z-fighting but might affect visual quality)
+                if (!adjacentProps.isTransparent && adjacent.getType() != BlockType.AIR) {
+                    return false; // Comment this line if you want transparent faces against solid blocks
+                }
+                // Render if adjacent to air or different block types
+                return adjacent.getType() == BlockType.AIR || adjacent.getType() != currentType;
+            }
+            
         } else {
-            // Handle out-of-bounds cases by checking adjacent chunks
+            // Handle chunk boundaries (similar logic as before)
             int chunkX = (x < 0) ? -1 : (x >= CHUNK_SIZE ? 1 : 0);
             int chunkZ = (z < 0) ? -1 : (z >= CHUNK_SIZE ? 1 : 0);
             int blockX = (x + CHUNK_SIZE) % CHUNK_SIZE;
-            int blockY = y; // Assuming y stays within bounds for simplicity
+            int blockY = y;
             int blockZ = (z + CHUNK_SIZE) % CHUNK_SIZE;
 
-            // Get the neighboring chunk
             Chunk neighbor = getNeighbor(chunkX, chunkZ);
             if (neighbor != null) {
                 Block adjacent = neighbor.getBlock(blockX, blockY, blockZ);
-                return adjacent == null || adjacent.getType() == BlockType.AIR;
+                if (adjacent == null) {
+                    return true;
+                }
+                
+                BlockProperties adjacentProps = BlockRegistry.get(adjacent.getType());
+                
+                if (!currentProps.isTransparent) {
+                    return adjacent.getType() == BlockType.AIR || adjacentProps.isTransparent;
+                }
+                
+                // Same transparent block logic for chunk boundaries
+                if (adjacent.getType() == currentType) {
+                    return false;
+                }
+                if (!adjacentProps.isTransparent && adjacent.getType() != BlockType.AIR) {
+                    return false; // Reduce z-fighting
+                }
+                return adjacent.getType() == BlockType.AIR || adjacent.getType() != currentType;
             } else {
-                return true; // No neighbor available, assume visible
+                return true;
             }
         }
+        
+        return false;
     }
 
     private Chunk getNeighbor(int chunkX, int chunkZ) {
@@ -142,18 +229,23 @@ public class Chunk {
         return blocks[x][y][z];
     }
 
-    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z, float r, float g, float b) {
-        int startIndex = vertices.size() / 8; // Current vertex count before adding this face
+    private void addFace(List<Float> vertices, List<Integer> indices, float[] cubeVertices, int vertexStart, int vertexEnd, int x, int y, int z, float r, float g, float b, float alpha) {
+        int startIndex = vertices.size() / 9; // Changed to 9 floats per vertex (added alpha)
         // Add the 4 vertices for this face
         for (int i = vertexStart; i < vertexEnd; i++) {
-            vertices.add(cubeVertices[i * 5] + x);      // x position
-            vertices.add(cubeVertices[i * 5 + 1] + y);  // y position
-            vertices.add(cubeVertices[i * 5 + 2] + z);  // z position
+            float posX = cubeVertices[i * 5] + x;
+            float posY = cubeVertices[i * 5 + 1] + y;
+            float posZ = cubeVertices[i * 5 + 2] + z;
+
+            vertices.add(posX);                         // x position
+            vertices.add(posY);                         // y position
+            vertices.add(posZ);                         // z position
             vertices.add(cubeVertices[i * 5 + 3]);      // u coordinate
             vertices.add(cubeVertices[i * 5 + 4]);      // v coordinate
             vertices.add(r);                            // red
             vertices.add(g);                            // green
             vertices.add(b);                            // blue
+            vertices.add(alpha);                        // alpha
         }
         // Add indices for two triangles: 0,1,2 and 2,3,0
         indices.add(startIndex + 0);
@@ -165,7 +257,15 @@ public class Chunk {
     }
 
     public RawModel getModel() {
-        return model;
+        return opaqueModel;
+    }
+
+    public RawModel getOpaqueModel() {
+        return opaqueModel;
+    }
+
+    public RawModel getTransparentModel() {
+        return transparentModel;
     }
 
     public Vector3f getPosition() {
