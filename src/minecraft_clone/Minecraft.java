@@ -86,6 +86,7 @@ public class Minecraft implements BaseGame {
 
     @Override
     public void cleanup() {
+        chunkManager.cleanup();
         chunkShader.cleanup();
         loader.cleanup();
         inputManager.freeInputCallbacks();

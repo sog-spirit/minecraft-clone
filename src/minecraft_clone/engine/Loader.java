@@ -118,7 +118,7 @@ public class Loader implements BaseLoader {
     @Override
     public void deleteVertexBufferObjects(List<Integer> vertexBufferObjectIDs) {
         for (int vertexBufferObjectID : vertexBufferObjectIDs) {
-            vertexArrayObjects.remove(vertexBufferObjectID);
+            vertexBufferObjects.removeIf(id -> id.equals(vertexBufferObjectID));
             glDeleteBuffers(vertexBufferObjectID);
         }
     }

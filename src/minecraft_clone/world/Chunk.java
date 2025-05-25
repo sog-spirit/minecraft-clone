@@ -305,9 +305,16 @@ public class Chunk {
     }
 
     private void cleanupModels() {
-        // Note: This would need to be implemented based on your BaseLoader
-        // You might need methods like loader.deleteVAO(model.getVaoID()) etc.
-        
+        if (opaqueModel != null) {
+            loader.deleteVertexBufferObjects(opaqueModel.getVertexBufferObjectIDs());
+            loader.deleteVertexArrayObject(opaqueModel.getVertexArrayObjectID());
+            opaqueModel = null;
+        }
+        if (transparentModel != null) {
+            loader.deleteVertexBufferObjects(transparentModel.getVertexBufferObjectIDs());
+            loader.deleteVertexArrayObject(transparentModel.getVertexArrayObjectID());
+            transparentModel = null;
+        }
     }
 
     public RawModel getModel() {
