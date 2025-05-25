@@ -14,30 +14,32 @@ public class Loader implements BaseLoader {
 
     @Override
     public RawModel loadToVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
+        List<Integer> vertexBufferObjectIDs = new ArrayList<>();
         int vertexArrayObjectID = createVertexArrayObject();
-        IntBuffer intBuffer = bindIndicesBuffer(indices);
-        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices); // position (x, y, z)
-        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
-        FloatBuffer colorFloatBuffer = storeDataInAttributeList(2, 4, vertexSize, vertices); // color (r, g, b, a)
+        IntBuffer intBuffer = bindIndicesBuffer(indices, vertexBufferObjectIDs);
+        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 3, vertexSize, vertices, vertexBufferObjectIDs); // position (x, y, z)
+        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices, vertexBufferObjectIDs); // uv (u, v)
+        FloatBuffer colorFloatBuffer = storeDataInAttributeList(2, 4, vertexSize, vertices, vertexBufferObjectIDs); // color (r, g, b, a)
         unbindVertexArrayObject();
         memFree(intBuffer);
         memFree(positionFloatBuffer);
         memFree(uvMappingFloatBuffer);
         memFree(colorFloatBuffer);
-        return new RawModel(vertexArrayObjectID, indices.length);
+        return new RawModel(vertexArrayObjectID, vertexBufferObjectIDs , indices.length);
     }
 
     @Override
     public RawModel loadTo2DVertexArrayObject(float[] vertices, int[] indices, int vertexSize) {
+        List<Integer> vertexBufferObjectIDs = new ArrayList<>();
         int vertexArrayObjectID = createVertexArrayObject();
-        IntBuffer intBuffer = bindIndicesBuffer(indices);
-        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 2, vertexSize, vertices); // position (x, y)
-        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices); // uv (u, v)
+        IntBuffer intBuffer = bindIndicesBuffer(indices, vertexBufferObjectIDs);
+        FloatBuffer positionFloatBuffer = storeDataInAttributeList(0, 2, vertexSize, vertices, vertexBufferObjectIDs); // position (x, y)
+        FloatBuffer uvMappingFloatBuffer = storeDataInAttributeList(1, 2, vertexSize, vertices, vertexBufferObjectIDs); // uv (u, v)
         unbindVertexArrayObject();
         memFree(intBuffer);
         memFree(positionFloatBuffer);
         memFree(uvMappingFloatBuffer);
-        return new RawModel(vertexArrayObjectID, indices.length);
+        return new RawModel(vertexArrayObjectID, vertexBufferObjectIDs, indices.length);
     }
 
     private int createVertexArrayObject() {
@@ -47,9 +49,10 @@ public class Loader implements BaseLoader {
         return vertexArrayObjectID;
     }
 
-    private IntBuffer bindIndicesBuffer(int[] indices) {
+    private IntBuffer bindIndicesBuffer(int[] indices, List<Integer> vertexBufferObjectIDs) {
         int vertexBufferObjectID = glGenBuffers();
         vertexBufferObjects.add(vertexBufferObjectID);
+        vertexBufferObjectIDs.add(vertexBufferObjectID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexBufferObjectID);
         IntBuffer intBuffer = storeDataInIntBuffer(indices);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, intBuffer, GL_STATIC_DRAW);
@@ -62,9 +65,10 @@ public class Loader implements BaseLoader {
         return intBuffer;
     }
 
-    private FloatBuffer storeDataInAttributeList(int attributeNumber, int size, int vertexSize, float[] data) {
+    private FloatBuffer storeDataInAttributeList(int attributeNumber, int size, int vertexSize, float[] data, List<Integer> vertexBufferObjectIDs) {
         int vertexBufferObjectID = glGenBuffers();
         vertexBufferObjects.add(vertexBufferObjectID);
+        vertexBufferObjectIDs.add(vertexBufferObjectID);
         glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjectID);
 
         FloatBuffer buffer = storeDataInFloatBuffer(data);
@@ -102,6 +106,20 @@ public class Loader implements BaseLoader {
         }
         for (int vertexBufferObject : this.vertexBufferObjects) {
             glDeleteBuffers(vertexBufferObject);
+        }
+    }
+
+    @Override
+    public void deleteVertexArrayObject(int vertexArrayObjectID) {
+        vertexArrayObjects.removeIf(id -> id.equals(vertexArrayObjectID));
+        glDeleteVertexArrays(vertexArrayObjectID);
+    }
+
+    @Override
+    public void deleteVertexBufferObjects(List<Integer> vertexBufferObjectIDs) {
+        for (int vertexBufferObjectID : vertexBufferObjectIDs) {
+            vertexArrayObjects.remove(vertexBufferObjectID);
+            glDeleteBuffers(vertexBufferObjectID);
         }
     }
 

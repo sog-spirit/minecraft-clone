@@ -21,6 +21,11 @@ public class Chunk {
     private Chunk[] neighbors; // 0: +x, 1: -x, 2: +z, 3: -z
     private PerlinNoise noise;
 
+    private boolean meshGenerated = false;
+    private boolean needsMeshUpdate = true;
+    private long lastAccessTime;
+    private int chunkX, chunkZ;
+
     public Chunk(Vector3f position, BaseLoader loader, TextureAtlas atlas, PerlinNoise noise) {
         this.position = position;
         this.loader = loader;
@@ -28,11 +33,32 @@ public class Chunk {
         this.blocks = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
         this.neighbors = new Chunk[4];
         this.noise = noise;
+        this.lastAccessTime = System.currentTimeMillis();
+        this.chunkX = (int) (position.x / CHUNK_SIZE);
+        this.chunkZ = (int) (position.z / CHUNK_SIZE);
         generateTerrain();
     }
 
     public void setNeighbor(int direction, Chunk neighbor) {
+        Chunk oldNeighbor = neighbors[direction];
         neighbors[direction] = neighbor;
+        
+        // If neighbor changed, we might need mesh update
+        if (oldNeighbor != neighbor) {
+            needsMeshUpdate = true;
+            // Also notify the neighbor that it might need an update
+            if (neighbor != null) {
+                neighbor.markForMeshUpdate();
+            }
+        }
+    }
+
+    public void markForMeshUpdate() {
+        needsMeshUpdate = true;
+    }
+
+    public boolean needsMeshUpdate() {
+        return needsMeshUpdate;
     }
 
     private void generateTerrain() {
@@ -41,19 +67,35 @@ public class Chunk {
                 // Calculate world coordinates
                 float worldX = position.x + x;
                 float worldZ = position.z + z;
-                // Generate height using Perlin noise
-                float height = noise.noise(worldX * 0.1f, worldZ * 0.1f);
+                
+                // Generate height using multiple octaves of Perlin noise for more realistic terrain
+                float height = 0;
+                float amplitude = 1;
+                float frequency = 0.01f;
+                
+                // Multiple octaves for more detailed terrain
+                for (int i = 0; i < 4; i++) {
+                    height += noise.noise(worldX * frequency, worldZ * frequency) * amplitude;
+                    amplitude *= 0.5f;
+                    frequency *= 2.0f;
+                }
+                
                 // Scale height to fit within chunk (0 to CHUNK_SIZE)
-                int terrainHeight = (int) ((height + 1) * 0.5f * CHUNK_SIZE);
+                int terrainHeight = (int) ((height + 1) * 0.3f * CHUNK_SIZE) + CHUNK_SIZE / 4;
                 terrainHeight = Math.max(1, Math.min(CHUNK_SIZE - 1, terrainHeight));
 
                 for (int y = 0; y < CHUNK_SIZE; y++) {
-                    if (y < terrainHeight - 2) {
+                    if (y < terrainHeight - 3) {
                         blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.STONE);
                     } else if (y < terrainHeight - 1) {
                         blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.DIRT);
                     } else if (y == terrainHeight - 1) {
-                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GLASS);
+                        // Occasionally place glass blocks for testing transparency
+                        if (noise.noise(worldX * 0.1f, worldZ * 0.1f) > 0.7f) {
+                            blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GLASS);
+                        } else {
+                            blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GRASS);
+                        }
                     } else {
                         blocks[x][y][z] = null; // Air
                     }
@@ -63,6 +105,8 @@ public class Chunk {
     }
 
     public void generateMesh() {
+        lastAccessTime = System.currentTimeMillis();
+
         List<Float> opaqueVerticesList = new ArrayList<>();
         List<Integer> opaqueIndicesList = new ArrayList<>();
         List<Float> transparentVerticesList = new ArrayList<>();
@@ -83,6 +127,7 @@ public class Chunk {
                 }
             }
         }
+        cleanupModels();
 
         // Create opaque model
         if (!opaqueVerticesList.isEmpty()) {
@@ -109,6 +154,9 @@ public class Chunk {
             }
             transparentModel = loader.loadToVertexArrayObject(transparentVertices, transparentIndices, 9);
         }
+
+        meshGenerated = true;
+        needsMeshUpdate = false;
     }
 
     private void addVisibleFaces(int x, int y, int z, BlockType type, List<Float> vertices, List<Integer> indices) {
@@ -256,6 +304,12 @@ public class Chunk {
         indices.add(startIndex + 0);
     }
 
+    private void cleanupModels() {
+        // Note: This would need to be implemented based on your BaseLoader
+        // You might need methods like loader.deleteVAO(model.getVaoID()) etc.
+        
+    }
+
     public RawModel getModel() {
         return opaqueModel;
     }
@@ -270,5 +324,58 @@ public class Chunk {
 
     public Vector3f getPosition() {
         return position;
+    }
+
+    public int getChunkX() {
+        return chunkX;
+    }
+
+    public int getChunkZ() {
+        return chunkZ;
+    }
+
+    public long getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    public void updateAccessTime() {
+        lastAccessTime = System.currentTimeMillis();
+    }
+
+    public boolean isMeshGenerated() {
+        return meshGenerated;
+    }
+
+    public int getDistanceFrom(int otherChunkX, int otherChunkZ) {
+        return Math.max(Math.abs(chunkX - otherChunkX), Math.abs(chunkZ - otherChunkZ));
+    }
+
+    public boolean isEmpty() {
+        for (int x = 0; x < CHUNK_SIZE; x++) {
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int z = 0; z < CHUNK_SIZE; z++) {
+                    if (blocks[x][y][z] != null) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public void cleanup() {
+        cleanupModels();
+        // Clear block references
+        for (int x = 0; x < CHUNK_SIZE; x++) {
+            for (int y = 0; y < CHUNK_SIZE; y++) {
+                for (int z = 0; z < CHUNK_SIZE; z++) {
+                    blocks[x][y][z] = null;
+                }
+            }
+        }
+        // Clear neighbor references
+        for (int i = 0; i < neighbors.length; i++) {
+            neighbors[i] = null;
+        }
     }
 }

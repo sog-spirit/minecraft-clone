@@ -28,9 +28,12 @@ public class Minecraft implements BaseGame {
     private TextureAtlas atlas;
     private Texture terrainTexture;
     private Texture iconsTexture;
-    private List<Chunk> chunks = new ArrayList<>();
     private ChunkManager chunkManager;
     private Crosshair crosshair;
+
+    private List<Chunk> chunks = new ArrayList<>();
+    private long lastChunkUpdate = 0;
+    private static final long CHUNK_UPDATE_INTERVAL = 100;
 
     public Minecraft() {
         displayManager = new DisplayManager();
@@ -51,8 +54,6 @@ public class Minecraft implements BaseGame {
         terrainTexture = new Texture("textures/terrain.png");
         iconsTexture = new Texture("textures/icons.png");
         chunkManager = new ChunkManager(loader, atlas);
-        chunkManager.generateChunks(1);
-        chunks.addAll(chunkManager.getChunks().values());
 
         crosshair = new Crosshair(loader, atlas);
         crosshair.generateMesh(displayManager);
@@ -61,6 +62,15 @@ public class Minecraft implements BaseGame {
     @Override
     public void update(float deltaTime) {
         camera.update(deltaTime, inputManager);
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastChunkUpdate > CHUNK_UPDATE_INTERVAL) {
+            chunkManager.updateChunks(camera.getPosition());
+            chunks.clear();
+            chunks.addAll(chunkManager.getChunks().values());
+            lastChunkUpdate = currentTime;
+            // Debug output
+            System.out.println("Chunk Status: " + chunkManager.getLoadingStats());
+        }
     }
 
     @Override
@@ -68,7 +78,6 @@ public class Minecraft implements BaseGame {
         displayManager.clearDisplay();
 
         renderer.renderChunks(chunks, chunkShader, terrainTexture);
-
 
         renderer.renderCrosshair(crosshair, crosshairShader, iconsTexture);
 
