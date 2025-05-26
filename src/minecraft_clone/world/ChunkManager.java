@@ -1,7 +1,6 @@
 package minecraft_clone.world;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,9 @@ public class ChunkManager {
     private final Vector3f chunkMax = new Vector3f();
     private final Vector3f chunkCenter = new Vector3f();
 
+    private List<Chunk> visibleOpaqueChunks = new ArrayList<>();
+    private List<Chunk> visibleTransparentChunks = new ArrayList<>();
+
     private int totalChunks = 0;
     private int culledChunks = 0;
     private int renderedChunks = 0;
@@ -61,16 +63,36 @@ public class ChunkManager {
 
         frustum.extractPlanes(projectionViewMatrix);
 
+        visibleOpaqueChunks.clear();
+        visibleTransparentChunks.clear();
+
         totalChunks = loadedChunks.size();
         culledChunks = 0;
         renderedChunks = 0;
 
         for (Chunk chunk : loadedChunks.values()) {
             if (isChunkVisible(chunk, camera.getPosition())) {
+                if (chunk.isMeshGenerated()) {
+                    if (chunk.getOpaqueModel() != null) {
+                        visibleOpaqueChunks.add(chunk);
+                    }
+                    if (chunk.getTransparentModel() != null) {
+                        visibleTransparentChunks.add(chunk);
+                    }
+                }
                 renderedChunks++;
             } else {
                 culledChunks++;
             }
+        }
+
+        if (!visibleTransparentChunks.isEmpty()) {
+            final Vector3f finalCameraPos = new Vector3f(camera.getPosition());
+            visibleTransparentChunks.sort((a, b) -> {
+                float distA = a.getPosition().distanceSquared(finalCameraPos);
+                float distB = b.getPosition().distanceSquared(finalCameraPos);
+                return Float.compare(distB, distA); // Reverse order (farthest first)
+            });
         }
     }
 
@@ -346,12 +368,12 @@ public class ChunkManager {
         this.forceUpdate = true;
     }
 
-    public Map<String, Chunk> getChunks() {
-        return new HashMap<>(loadedChunks);
+    public List<Chunk> getVisibleOpaqueChunks() {
+        return visibleOpaqueChunks;
     }
 
-    public Map<String, Chunk> getLoadedChunks() {
-        return loadedChunks;
+    public List<Chunk> getVisibleTransparentChunks() {
+        return visibleTransparentChunks;
     }
 
     public void setRenderDistance(int distance) {

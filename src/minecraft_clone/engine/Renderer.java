@@ -4,51 +4,24 @@ import minecraft_clone.entity.Camera;
 import minecraft_clone.hud.Crosshair;
 import minecraft_clone.render.Texture;
 import minecraft_clone.world.Chunk;
+import minecraft_clone.world.ChunkManager;
 
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL30.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
-import org.joml.Vector3f;
 
 public class Renderer {
     private final Camera camera;
     private final DisplayManager displayManager;
-
-    private static class ChunkRenderData {
-        final Chunk chunk;
-        final float distance;
-
-        ChunkRenderData(Chunk chunk, float distance) {
-            this.chunk = chunk;
-            this.distance = distance;
-        }
-    }
 
     public Renderer(Camera camera, DisplayManager displayManager) {
         this.camera = camera;
         this.displayManager = displayManager;
     }
 
-    public void renderChunks(List<Chunk> chunks, BaseShader shader, Texture texture) {
-        // Sort chunks by distance from camera for proper transparent rendering
-        Vector3f cameraPos = camera.getPosition();
-        List<ChunkRenderData> chunkData = new ArrayList<>();
-        
-        for (Chunk chunk : chunks) {
-            Vector3f chunkCenter = new Vector3f(chunk.getPosition()).add(8, 8, 8); // Center of chunk
-            float distance = cameraPos.distance(chunkCenter);
-            chunkData.add(new ChunkRenderData(chunk, distance));
-        }
-        
-        // Sort by distance (farthest first for transparent objects)
-        Collections.sort(chunkData, (a, b) -> Float.compare(b.distance, a.distance));
-
+    public void renderChunks(ChunkManager chunkManager, BaseShader shader, Texture texture) {
         shader.start();
         shader.loadUniformMatrix4f("view", camera.getViewMatrix());
         shader.loadUniformMatrix4f("projection", camera.getProjectionMatrix(displayManager.getWidth(), displayManager.getHeight()));
@@ -61,8 +34,8 @@ public class Renderer {
         glCullFace(GL_BACK);
         glDisable(GL_BLEND);
         glDepthMask(true);
-        for (ChunkRenderData data : chunkData) {
-            renderChunkOpaque(data.chunk, shader);
+        for (Chunk chunk : chunkManager.getVisibleOpaqueChunks()) {
+            renderChunkOpaque(chunk, shader);
         }
 
         // Second pass: Render all transparent blocks
@@ -71,8 +44,8 @@ public class Renderer {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(false); // Don't write to depth buffer for transparent objects
 
-        for (ChunkRenderData data : chunkData) {
-            renderChunkTransparent(data.chunk, shader);
+        for (Chunk chunk : chunkManager.getVisibleTransparentChunks()) {
+            renderChunkTransparent(chunk, shader);
         }
 
         // Restore state

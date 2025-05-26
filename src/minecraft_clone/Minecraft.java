@@ -11,11 +11,7 @@ import minecraft_clone.entity.Camera;
 import minecraft_clone.hud.Crosshair;
 import minecraft_clone.render.Texture;
 import minecraft_clone.render.TextureAtlas;
-import minecraft_clone.world.Chunk;
 import minecraft_clone.world.ChunkManager;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Minecraft implements BaseGame {
     private DisplayManager displayManager;
@@ -31,7 +27,6 @@ public class Minecraft implements BaseGame {
     private ChunkManager chunkManager;
     private Crosshair crosshair;
 
-    private List<Chunk> chunks = new ArrayList<>();
     private long lastChunkUpdate = 0;
     private static final long CHUNK_UPDATE_INTERVAL = 100;
 
@@ -59,7 +54,6 @@ public class Minecraft implements BaseGame {
         crosshair.generateMesh(displayManager);
 
         chunkManager.preloadInitialChunks(camera.getPosition());
-        chunks.addAll(chunkManager.getChunks().values());
     }
 
     @Override
@@ -70,8 +64,6 @@ public class Minecraft implements BaseGame {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastChunkUpdate > CHUNK_UPDATE_INTERVAL) {
             chunkManager.updateChunks(camera.getPosition());
-            chunks.clear();
-            chunks.addAll(chunkManager.getChunks().values());
             lastChunkUpdate = currentTime;
             // Debug output
             System.out.println("Chunk Status: " + chunkManager.getLoadingStats());
@@ -83,7 +75,7 @@ public class Minecraft implements BaseGame {
     public void render() {
         displayManager.clearDisplay();
 
-        renderer.renderChunks(chunks, chunkShader, terrainTexture);
+        renderer.renderChunks(chunkManager, chunkShader, terrainTexture);
 
         renderer.renderCrosshair(crosshair, crosshairShader, iconsTexture);
 
