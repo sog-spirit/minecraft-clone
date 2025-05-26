@@ -12,7 +12,7 @@ import minecraft_clone.render.TextureAtlas;
 
 public class Chunk {
     public static final int CHUNK_SIZE = 16;
-    private Block[][][] blocks;
+    private BlockType[][][] blocks;
     private RawModel opaqueModel;
     private RawModel transparentModel;
     private Vector3f position;
@@ -30,7 +30,7 @@ public class Chunk {
         this.position = position;
         this.loader = loader;
         this.atlas = atlas;
-        this.blocks = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+        this.blocks = new BlockType[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
         this.neighbors = new Chunk[4];
         this.noise = noise;
         this.lastAccessTime = System.currentTimeMillis();
@@ -86,15 +86,15 @@ public class Chunk {
 
                 for (int y = 0; y < CHUNK_SIZE; y++) {
                     if (y < terrainHeight - 3) {
-                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.STONE);
+                        blocks[x][y][z] = BlockType.STONE;
                     } else if (y < terrainHeight - 1) {
-                        blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.DIRT);
+                        blocks[x][y][z] = BlockType.DIRT;
                     } else if (y == terrainHeight - 1) {
                         // Occasionally place glass blocks for testing transparency
                         if (noise.noise(worldX * 0.1f, worldZ * 0.1f) > 0.7f) {
-                            blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GLASS);
+                            blocks[x][y][z] = BlockType.GLASS;
                         } else {
-                            blocks[x][y][z] = new Block(new Vector3f(x, y, z), BlockType.GRASS);
+                            blocks[x][y][z] = BlockType.GRASS;
                         }
                     } else {
                         blocks[x][y][z] = null; // Air
@@ -115,13 +115,13 @@ public class Chunk {
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 for (int z = 0; z < CHUNK_SIZE; z++) {
-                    Block block = blocks[x][y][z];
-                    if (block != null && block.getType() != BlockType.AIR) {
-                        BlockProperties props = BlockRegistry.get(block.getType());
-                        if (props.isTransparent && block.getType() != BlockType.AIR) {
-                            addVisibleFaces(x, y, z, block.getType(), transparentVerticesList, transparentIndicesList);
+                    BlockType block = blocks[x][y][z];
+                    if (block != null && block != BlockType.AIR) {
+                        BlockProperties props = BlockRegistry.get(block);
+                        if (props.isTransparent && block!= BlockType.AIR) {
+                            addVisibleFaces(x, y, z, block, transparentVerticesList, transparentIndicesList);
                         } else {
-                            addVisibleFaces(x, y, z, block.getType(), opaqueVerticesList, opaqueIndicesList);
+                            addVisibleFaces(x, y, z, block, opaqueVerticesList, opaqueIndicesList);
                         }
                     }
                 }
@@ -200,31 +200,31 @@ public class Chunk {
         
         // Check if the position is within the current chunk
         if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE) {
-            Block adjacent = blocks[x][y][z];
+            BlockType adjacent = blocks[x][y][z];
             if (adjacent == null) {
                 return true; // Adjacent to air, always render
             }
             
-            BlockProperties adjacentProps = BlockRegistry.get(adjacent.getType());
+            BlockProperties adjacentProps = BlockRegistry.get(adjacent);
             
             // If current block is opaque, only render face if adjacent is air or transparent
             if (!currentProps.isTransparent) {
-                return adjacent.getType() == BlockType.AIR || adjacentProps.isTransparent;
+                return adjacent == BlockType.AIR || adjacentProps.isTransparent;
             }
             
             // For transparent blocks, be more selective to reduce z-fighting
             if (currentProps.isTransparent) {
                 // Don't render transparent faces adjacent to the same transparent block type
-                if (adjacent.getType() == currentType) {
+                if (adjacent == currentType) {
                     return false;
                 }
                 // Don't render transparent faces directly adjacent to opaque blocks
                 // (this reduces z-fighting but might affect visual quality)
-                if (!adjacentProps.isTransparent && adjacent.getType() != BlockType.AIR) {
+                if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) {
                     return false; // Comment this line if you want transparent faces against solid blocks
                 }
                 // Render if adjacent to air or different block types
-                return adjacent.getType() == BlockType.AIR || adjacent.getType() != currentType;
+                return adjacent == BlockType.AIR || adjacent != currentType;
             }
             
         } else {
@@ -237,25 +237,25 @@ public class Chunk {
 
             Chunk neighbor = getNeighbor(chunkX, chunkZ);
             if (neighbor != null) {
-                Block adjacent = neighbor.getBlock(blockX, blockY, blockZ);
+                BlockType adjacent = neighbor.getBlock(blockX, blockY, blockZ);
                 if (adjacent == null) {
                     return true;
                 }
                 
-                BlockProperties adjacentProps = BlockRegistry.get(adjacent.getType());
+                BlockProperties adjacentProps = BlockRegistry.get(adjacent);
                 
                 if (!currentProps.isTransparent) {
-                    return adjacent.getType() == BlockType.AIR || adjacentProps.isTransparent;
+                    return adjacent == BlockType.AIR || adjacentProps.isTransparent;
                 }
                 
                 // Same transparent block logic for chunk boundaries
-                if (adjacent.getType() == currentType) {
+                if (adjacent == currentType) {
                     return false;
                 }
-                if (!adjacentProps.isTransparent && adjacent.getType() != BlockType.AIR) {
+                if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) {
                     return false; // Reduce z-fighting
                 }
-                return adjacent.getType() == BlockType.AIR || adjacent.getType() != currentType;
+                return adjacent == BlockType.AIR || adjacent != currentType;
             } else {
                 return true;
             }
@@ -272,7 +272,7 @@ public class Chunk {
         return null; // No diagonal neighbors for simplicity
     }
 
-    private Block getBlock(int x, int y, int z) {
+    private BlockType getBlock(int x, int y, int z) {
         if (y < 0 || y >= CHUNK_SIZE) return null; // Out of vertical bounds
         return blocks[x][y][z];
     }
