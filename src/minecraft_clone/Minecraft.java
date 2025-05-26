@@ -57,6 +57,9 @@ public class Minecraft implements BaseGame {
 
         crosshair = new Crosshair(loader, atlas);
         crosshair.generateMesh(displayManager);
+
+        chunkManager.preloadInitialChunks(camera.getPosition());
+        chunks.addAll(chunkManager.getChunks().values());
     }
 
     @Override
