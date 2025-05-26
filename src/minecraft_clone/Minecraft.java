@@ -65,6 +65,8 @@ public class Minecraft implements BaseGame {
     @Override
     public void update(float deltaTime) {
         camera.update(deltaTime, inputManager);
+        chunkManager.cullChunks(camera, displayManager.getWidth(), displayManager.getHeight());
+
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastChunkUpdate > CHUNK_UPDATE_INTERVAL) {
             chunkManager.updateChunks(camera.getPosition());
@@ -73,6 +75,7 @@ public class Minecraft implements BaseGame {
             lastChunkUpdate = currentTime;
             // Debug output
             System.out.println("Chunk Status: " + chunkManager.getLoadingStats());
+            System.out.println("Frustum culling status: " + chunkManager.getCullingStats());
         }
     }
 

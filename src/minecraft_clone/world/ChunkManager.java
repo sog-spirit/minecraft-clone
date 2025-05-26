@@ -11,9 +11,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import minecraft_clone.engine.BaseLoader;
+import minecraft_clone.entity.Camera;
+import minecraft_clone.render.Frustum;
 import minecraft_clone.render.TextureAtlas;
 
 public class ChunkManager {
@@ -32,6 +35,15 @@ public class ChunkManager {
     private int lastPlayerChunkZ = Integer.MAX_VALUE;
     private boolean isInitialLoad = true;
 
+    private final Frustum frustum;
+    private final Vector3f chunkMin = new Vector3f();
+    private final Vector3f chunkMax = new Vector3f();
+    private final Vector3f chunkCenter = new Vector3f();
+
+    private int totalChunks = 0;
+    private int culledChunks = 0;
+    private int renderedChunks = 0;
+
     public ChunkManager(BaseLoader loader, TextureAtlas atlas) {
         this.loadedChunks = new ConcurrentHashMap<>();
         this.pendingChunks = new ConcurrentHashMap<>();
@@ -39,6 +51,60 @@ public class ChunkManager {
         this.atlas = atlas;
         this.noise = new PerlinNoise(12345);
         this.chunkGenerationExecutor = Executors.newFixedThreadPool(4);
+        this.frustum = new Frustum();
+    }
+
+    public void cullChunks(Camera camera, int screenWidth, int screenHeight) {
+        Matrix4f projectionMatrix = camera.getProjectionMatrix(screenWidth, screenHeight);
+        Matrix4f viewMatrix = camera.getViewMatrix();
+        Matrix4f projectionViewMatrix = new Matrix4f(projectionMatrix).mul(viewMatrix);
+
+        frustum.extractPlanes(projectionViewMatrix);
+
+        totalChunks = loadedChunks.size();
+        culledChunks = 0;
+        renderedChunks = 0;
+
+        for (Chunk chunk : loadedChunks.values()) {
+            if (isChunkVisible(chunk, camera.getPosition())) {
+                renderedChunks++;
+            } else {
+                culledChunks++;
+            }
+        }
+    }
+
+    private boolean isChunkVisible(Chunk chunk, Vector3f cameraPos) {
+        Vector3f chunkPos = chunk.getPosition();
+        
+        // Calculate chunk bounding box
+        chunkMin.set(chunkPos.x, chunkPos.y, chunkPos.z);
+        chunkMax.set(chunkPos.x + Chunk.CHUNK_SIZE, chunkPos.y + Chunk.CHUNK_SIZE, chunkPos.z + Chunk.CHUNK_SIZE);
+        
+        // Early distance check - skip chunks that are very far away
+        chunkCenter.set(chunkPos.x + Chunk.CHUNK_SIZE * 0.5f, 
+                       chunkPos.y + Chunk.CHUNK_SIZE * 0.5f, 
+                       chunkPos.z + Chunk.CHUNK_SIZE * 0.5f);
+        
+        float distanceSquared = cameraPos.distanceSquared(chunkCenter);
+        float maxRenderDistanceSquared = (16 * Chunk.CHUNK_SIZE) * (16 * Chunk.CHUNK_SIZE); // 16 chunks max distance
+        
+        if (distanceSquared > maxRenderDistanceSquared) {
+            return false;
+        }
+        
+        // Skip empty chunks
+        if (chunk.isEmpty()) {
+            return false;
+        }
+        
+        // Skip chunks without generated meshes
+        if (!chunk.isMeshGenerated()) {
+            return false;
+        }
+        
+        // Frustum culling test
+        return frustum.isAABBInside(chunkMin, chunkMax);
     }
 
     public void preloadInitialChunks(Vector3f playerPosition) {
@@ -310,6 +376,12 @@ public class ChunkManager {
 
     public String getLoadingStats() {
         return String.format("Loaded: %d, Pending: %d, Render Distance: %d", loadedChunks.size(), pendingChunks.size(), renderDistance);
+    }
+
+    public String getCullingStats() {
+        return String.format("Chunks - Total: %d, Rendered: %d, Culled: %d (%.1f%%)", 
+                           totalChunks, renderedChunks, culledChunks, 
+                           totalChunks > 0 ? (culledChunks * 100.0f / totalChunks) : 0.0f);
     }
 
     public void cleanup() {

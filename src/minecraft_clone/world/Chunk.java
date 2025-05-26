@@ -22,7 +22,7 @@ public class Chunk {
     private PerlinNoise noise;
 
     private boolean meshGenerated = false;
-    private boolean needsMeshUpdate = true;
+    private boolean needsMeshUpdate = false;
     private long lastAccessTime;
     private int chunkX, chunkZ;
 
@@ -140,6 +140,7 @@ public class Chunk {
                 opaqueIndices[i] = opaqueIndicesList.get(i);
             }
             opaqueModel = loader.loadToVertexArrayObject(opaqueVertices, opaqueIndices, 9);
+            opaqueModel.setCullBackFaces(true);
         }
 
         // Create transparent model
@@ -153,6 +154,7 @@ public class Chunk {
                 transparentIndices[i] = transparentIndicesList.get(i);
             }
             transparentModel = loader.loadToVertexArrayObject(transparentVertices, transparentIndices, 9);
+            transparentModel.setCullBackFaces(false);
         }
 
         meshGenerated = true;

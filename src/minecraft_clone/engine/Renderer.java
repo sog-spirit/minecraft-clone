@@ -57,6 +57,8 @@ public class Renderer {
         glActiveTexture(GL_TEXTURE0);
 
         // First pass: Render all opaque blocks
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         glDisable(GL_BLEND);
         glDepthMask(true);
         for (ChunkRenderData data : chunkData) {
@@ -64,10 +66,11 @@ public class Renderer {
         }
 
         // Second pass: Render all transparent blocks
+        glDisable(GL_CULL_FACE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(false); // Don't write to depth buffer for transparent objects
-        
+
         for (ChunkRenderData data : chunkData) {
             renderChunkTransparent(data.chunk, shader);
         }
@@ -108,6 +111,7 @@ public class Renderer {
         RawModel opaqueModel = chunk.getOpaqueModel();
         if (opaqueModel != null && opaqueModel.getVertexCount() > 0) {
             shader.loadUniformMatrix4f("model", new Matrix4f().translate(chunk.getPosition()));
+
             glBindVertexArray(opaqueModel.getVertexArrayObjectID());
             glEnableVertexAttribArray(0); // Position
             glEnableVertexAttribArray(1); // Texture coords
@@ -124,6 +128,7 @@ public class Renderer {
         RawModel transparentModel = chunk.getTransparentModel();
         if (transparentModel != null && transparentModel.getVertexCount() > 0) {
             shader.loadUniformMatrix4f("model", new Matrix4f().translate(chunk.getPosition()));
+
             glBindVertexArray(transparentModel.getVertexArrayObjectID());
             glEnableVertexAttribArray(0); // Position
             glEnableVertexAttribArray(1); // Texture coords
