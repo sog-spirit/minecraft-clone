@@ -31,7 +31,7 @@ public class Chunk {
         this.loader = loader;
         this.atlas = atlas;
         this.blocks = new BlockType[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
-        this.neighbors = new Chunk[4];
+        this.neighbors = new Chunk[6];
         this.noise = noise;
         this.lastAccessTime = System.currentTimeMillis();
         this.chunkX = (int) (position.x / CHUNK_SIZE);

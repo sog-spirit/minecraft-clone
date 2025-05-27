@@ -12,6 +12,7 @@ import java.util.concurrent.Future;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 
 import minecraft_clone.engine.BaseLoader;
 import minecraft_clone.entity.Camera;
@@ -26,13 +27,20 @@ public class ChunkManager {
     private PerlinNoise noise;
     private ExecutorService chunkGenerationExecutor;
 
-    private int renderDistance = 8; // Chunks to keep loaded around player
+    private int renderDistance = 8; // Chunks to keep loaded around player (horizontal)
+    private int verticalRenderDistance = 4; // Chunks to keep loaded above/below player
     private int unloadDistance = 10; // Distance at which to unload chunks
+    private int verticalUnloadDistance = 6; // Vertical distance at which to unload chunks
+
     private Vector3f lastPlayerPosition = new Vector3f();
     private boolean forceUpdate = true;
-    private int lastPlayerChunkX = Integer.MAX_VALUE;
-    private int lastPlayerChunkZ = Integer.MAX_VALUE;
+    private Vector3i lastPlayerChunk = new Vector3i(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     private boolean isInitialLoad = true;
+
+    private static final int MIN_WORLD_Y = -64;
+    private static final int MAX_WORLD_Y = 320;
+    private static final int MIN_CHUNK_Y = MIN_WORLD_Y / Chunk.CHUNK_SIZE;
+    private static final int MAX_CHUNK_Y = MAX_WORLD_Y / Chunk.CHUNK_SIZE;
 
     private final Frustum frustum;
     private final Vector3f chunkMin = new Vector3f();
@@ -130,118 +138,120 @@ public class ChunkManager {
     }
 
     public void preloadInitialChunks(Vector3f playerPosition) {
-        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
-        
+        Vector3i playerChunk = getChunkCoordinates(playerPosition);
+
         // Load a smaller area synchronously for immediate gameplay
-        int initialLoadRadius = Math.min(3, renderDistance); // Load 3x3 area around player
+        int initialLoadRadius = Math.min(2, renderDistance);
+        int initialVerticalRadius = Math.min(2, verticalRenderDistance);
         
         System.out.println("Preloading initial chunks...");
         long startTime = System.currentTimeMillis();
         
-        for (int x = playerChunkX - initialLoadRadius; x <= playerChunkX + initialLoadRadius; x++) {
-            for (int z = playerChunkZ - initialLoadRadius; z <= playerChunkZ + initialLoadRadius; z++) {
-                String chunkKey = getChunkKey(x, z);
-                if (!loadedChunks.containsKey(chunkKey)) {
-                    // Create chunk synchronously
-                    Vector3f position = new Vector3f(x * Chunk.CHUNK_SIZE, 0, z * Chunk.CHUNK_SIZE);
-                    Chunk chunk = new Chunk(position, loader, atlas, noise);
-                    loadedChunks.put(chunkKey, chunk);
+        for (int x = playerChunk.x - initialLoadRadius; x <= playerChunk.x + initialLoadRadius; x++) {
+            for (int z = playerChunk.z - initialLoadRadius; z <= playerChunk.z + initialLoadRadius; z++) {
+                for (int y = Math.max(MIN_CHUNK_Y, playerChunk.y - initialVerticalRadius); 
+                     y <= Math.min(MAX_CHUNK_Y, playerChunk.y + initialVerticalRadius); y++) {
+                    String chunkKey = getChunkKey(x, y, z);
+                    if (!loadedChunks.containsKey(chunkKey)) {
+                        Vector3f position = new Vector3f(x * Chunk.CHUNK_SIZE, y * Chunk.CHUNK_SIZE, z * Chunk.CHUNK_SIZE);
+                        Chunk chunk = new Chunk(position, loader, atlas, noise);
+                        loadedChunks.put(chunkKey, chunk);
+                    }
                 }
             }
         }
-        
+
         // Update neighbors and generate meshes for initial chunks
         updateChunkNeighbors();
-        
+
         long endTime = System.currentTimeMillis();
         System.out.println("Initial chunks loaded in " + (endTime - startTime) + "ms");
         
         // Now start loading the rest asynchronously
         isInitialLoad = false;
-        lastPlayerChunkX = playerChunkX;
-        lastPlayerChunkZ = playerChunkZ;
+        lastPlayerChunk.set(playerChunk);
         lastPlayerPosition.set(playerPosition);
     }
 
     public void updateChunks(Vector3f playerPosition) {
-        int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
-        int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
+        Vector3i playerChunk = getChunkCoordinates(playerPosition);
 
-        if (!forceUpdate && playerChunkX == lastPlayerChunkX && playerChunkZ == lastPlayerChunkZ) {
+        if (!forceUpdate && playerChunk.equals(lastPlayerChunk)) {
             return;
         }
 
-        lastPlayerChunkX = playerChunkX;
-        lastPlayerChunkZ = playerChunkZ;
+        lastPlayerChunk.set(playerChunk);
         forceUpdate = false;
         lastPlayerPosition.set(playerPosition);
 
-        Set<String> chunksToLoad = getChunksInRange(playerChunkX, playerChunkZ, renderDistance);
+        Set<String> chunksToLoad = getChunksInRange(playerChunk.x, playerChunk.y, playerChunk.z, renderDistance, verticalRenderDistance);
 
         if (isInitialLoad) {
-            loadInitialChunksSync(chunksToLoad, playerChunkX, playerChunkZ);
+            loadInitialChunksSync(chunksToLoad, playerChunk);
         } else {
             loadNewChunks(chunksToLoad);
         }
 
-        unloadDistantChunks(playerChunkX, playerChunkZ);
+        unloadDistantChunks(playerChunk);
 
         updateChunkNeighbors();
     }
 
-    private void loadInitialChunksSync(Set<String> chunksToLoad, int playerChunkX, int playerChunkZ) {
+    private Vector3i getChunkCoordinates(Vector3f worldPosition) {
+        return new Vector3i(
+            (int) Math.floor(worldPosition.x / Chunk.CHUNK_SIZE),
+            (int) Math.floor(worldPosition.y / Chunk.CHUNK_SIZE),
+            (int) Math.floor(worldPosition.z / Chunk.CHUNK_SIZE)
+        );
+    }
+
+    private void loadInitialChunksSync(Set<String> chunksToLoad, Vector3i playerChunk) {
         // Sort chunks by distance from player for priority loading
         List<String> sortedChunks = new ArrayList<>(chunksToLoad);
         sortedChunks.sort((a, b) -> {
-            String[] coordsA = a.split(",");
-            String[] coordsB = b.split(",");
-            int chunkXA = Integer.parseInt(coordsA[0]);
-            int chunkZA = Integer.parseInt(coordsA[1]);
-            int chunkXB = Integer.parseInt(coordsB[0]);
-            int chunkZB = Integer.parseInt(coordsB[1]);
-            
-            int distA = Math.max(Math.abs(chunkXA - playerChunkX), Math.abs(chunkZA - playerChunkZ));
-            int distB = Math.max(Math.abs(chunkXB - playerChunkX), Math.abs(chunkZB - playerChunkZ));
-            
+            Vector3i coordsA = parseChunkKey(a);
+            Vector3i coordsB = parseChunkKey(b);
+
+            int distA = Math.max(Math.max(Math.abs(coordsA.x - playerChunk.x), Math.abs(coordsA.z - playerChunk.z)), Math.abs(coordsA.y - playerChunk.y));
+            int distB = Math.max(Math.max(Math.abs(coordsB.x - playerChunk.x), Math.abs(coordsB.z - playerChunk.z)), Math.abs(coordsB.y - playerChunk.y));
+
             return Integer.compare(distA, distB);
         });
 
         // Load closest chunks synchronously, distant ones asynchronously
-        int syncLoadRadius = 2; // Load chunks within 2 blocks synchronously
-        
+        int syncLoadRadius = 1; // Load chunks within 2 blocks synchronously
+
         for (String chunkKey : sortedChunks) {
             if (!loadedChunks.containsKey(chunkKey) && !pendingChunks.containsKey(chunkKey)) {
-                String[] coords = chunkKey.split(",");
-                int chunkX = Integer.parseInt(coords[0]);
-                int chunkZ = Integer.parseInt(coords[1]);
-                int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
+                Vector3i coords = parseChunkKey(chunkKey);
+                int distance = Math.max(Math.max(Math.abs(coords.x - playerChunk.x), Math.abs(coords.z - playerChunk.z)), Math.abs(coords.y - playerChunk.y));
                 
                 if (distance <= syncLoadRadius) {
-                    // Load synchronously for immediate availability
-                    Vector3f position = new Vector3f(chunkX * Chunk.CHUNK_SIZE, 0, chunkZ * Chunk.CHUNK_SIZE);
+                    Vector3f position = new Vector3f(coords.x * Chunk.CHUNK_SIZE, coords.y * Chunk.CHUNK_SIZE, coords.z * Chunk.CHUNK_SIZE);
                     Chunk chunk = new Chunk(position, loader, atlas, noise);
                     loadedChunks.put(chunkKey, chunk);
                 } else {
-                    // Load asynchronously for distant chunks
                     Future<Chunk> future = chunkGenerationExecutor.submit(() -> {
-                        Vector3f position = new Vector3f(chunkX * Chunk.CHUNK_SIZE, 0, chunkZ * Chunk.CHUNK_SIZE);
+                        Vector3f position = new Vector3f(coords.x * Chunk.CHUNK_SIZE, coords.y * Chunk.CHUNK_SIZE, coords.z * Chunk.CHUNK_SIZE);
                         return new Chunk(position, loader, atlas, noise);
                     });
                     pendingChunks.put(chunkKey, future);
                 }
             }
         }
-        
+
         // Check completed async chunks
         checkCompletedChunks();
     }
 
-    private Set<String> getChunksInRange(int centerX, int centerZ, int range) {
+    private Set<String> getChunksInRange(int centerX, int centerY, int centerZ, int horizontalRange, int verticalRange) {
         Set<String> chunks = new HashSet<>();
-        for (int x = centerX - range; x <= centerX + range; x++) {
-            for (int z = centerZ - range; z <= centerZ + range; z++) {
-                chunks.add(getChunkKey(x, z));
+        for (int x = centerX - horizontalRange; x <= centerX + horizontalRange; x++) {
+            for (int z = centerZ - horizontalRange; z <= centerZ + horizontalRange; z++) {
+                for (int y = Math.max(MIN_CHUNK_Y, centerY - verticalRange); 
+                     y <= Math.min(MAX_CHUNK_Y, centerY + verticalRange); y++) {
+                    chunks.add(getChunkKey(x, y, z));
+                }
             }
         }
         return chunks;
@@ -250,12 +260,9 @@ public class ChunkManager {
     private void loadNewChunks(Set<String> chunksToLoad) {
         for (String chunkKey : chunksToLoad) {
             if (!loadedChunks.containsKey(chunkKey) && !pendingChunks.containsKey(chunkKey)) {
-                // Start async chunk generation
                 Future<Chunk> future = chunkGenerationExecutor.submit(() -> {
-                    String[] coords = chunkKey.split(",");
-                    int chunkX = Integer.parseInt(coords[0]);
-                    int chunkZ = Integer.parseInt(coords[1]);
-                    Vector3f position = new Vector3f(chunkX * Chunk.CHUNK_SIZE, 0, chunkZ * Chunk.CHUNK_SIZE);
+                    Vector3i coords = parseChunkKey(chunkKey);
+                    Vector3f position = new Vector3f(coords.x * Chunk.CHUNK_SIZE, coords.y * Chunk.CHUNK_SIZE, coords.z * Chunk.CHUNK_SIZE);
                     return new Chunk(position, loader, atlas, noise);
                 });
                 pendingChunks.put(chunkKey, future);
@@ -280,28 +287,27 @@ public class ChunkManager {
                 }
             }
         }
-        
+
         // Remove completed chunks from pending
         for (String key : completedChunks) {
             pendingChunks.remove(key);
         }
     }
 
-    private void unloadDistantChunks(int playerChunkX, int playerChunkZ) {
+    private void unloadDistantChunks(Vector3i playerChunk) {
         List<String> chunksToUnload = new ArrayList<>();
-        
+
         for (String chunkKey : loadedChunks.keySet()) {
-            String[] coords = chunkKey.split(",");
-            int chunkX = Integer.parseInt(coords[0]);
-            int chunkZ = Integer.parseInt(coords[1]);
-            
-            int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
-            
-            if (distance > unloadDistance) {
+            Vector3i coords = parseChunkKey(chunkKey);
+
+            int horizontalDistance = Math.max(Math.abs(coords.x - playerChunk.x), Math.abs(coords.z - playerChunk.z));
+            int verticalDistance = Math.abs(coords.y - playerChunk.y);
+
+            if (horizontalDistance > unloadDistance || verticalDistance > verticalUnloadDistance) {
                 chunksToUnload.add(chunkKey);
             }
         }
-        
+
         // Unload chunks
         for (String chunkKey : chunksToUnload) {
             Chunk chunk = loadedChunks.remove(chunkKey);
@@ -310,21 +316,20 @@ public class ChunkManager {
                 cleanupChunk(chunk);
             }
         }
-        
+
         // Also cancel pending chunks that are too far
         List<String> pendingToCancel = new ArrayList<>();
         for (String chunkKey : pendingChunks.keySet()) {
-            String[] coords = chunkKey.split(",");
-            int chunkX = Integer.parseInt(coords[0]);
-            int chunkZ = Integer.parseInt(coords[1]);
-            
-            int distance = Math.max(Math.abs(chunkX - playerChunkX), Math.abs(chunkZ - playerChunkZ));
-            
-            if (distance > unloadDistance) {
+            Vector3i coords = parseChunkKey(chunkKey);
+
+            int horizontalDistance = Math.max(Math.abs(coords.x - playerChunk.x), Math.abs(coords.z - playerChunk.z));
+            int verticalDistance = Math.abs(coords.y - playerChunk.y);
+
+            if (horizontalDistance > unloadDistance || verticalDistance > verticalUnloadDistance) {
                 pendingToCancel.add(chunkKey);
             }
         }
-        
+
         for (String chunkKey : pendingToCancel) {
             Future<Chunk> future = pendingChunks.remove(chunkKey);
             if (future != null) {
@@ -337,17 +342,17 @@ public class ChunkManager {
         for (Map.Entry<String, Chunk> entry : loadedChunks.entrySet()) {
             String chunkKey = entry.getKey();
             Chunk chunk = entry.getValue();
-            String[] coords = chunkKey.split(",");
-            int chunkX = Integer.parseInt(coords[0]);
-            int chunkZ = Integer.parseInt(coords[1]);
-            
+            Vector3i coords = parseChunkKey(chunkKey);
+
             // Set neighbors: 0 (+x), 1 (-x), 2 (+z), 3 (-z)
-            chunk.setNeighbor(0, loadedChunks.get(getChunkKey(chunkX + 1, chunkZ))); // +x
-            chunk.setNeighbor(1, loadedChunks.get(getChunkKey(chunkX - 1, chunkZ))); // -x
-            chunk.setNeighbor(2, loadedChunks.get(getChunkKey(chunkX, chunkZ + 1))); // +z
-            chunk.setNeighbor(3, loadedChunks.get(getChunkKey(chunkX, chunkZ - 1))); // -z
+            chunk.setNeighbor(0, loadedChunks.get(getChunkKey(coords.x + 1, coords.y, coords.z))); // +x
+            chunk.setNeighbor(1, loadedChunks.get(getChunkKey(coords.x - 1, coords.y, coords.z))); // -x
+            chunk.setNeighbor(2, loadedChunks.get(getChunkKey(coords.x, coords.y + 1, coords.z))); // +y
+            chunk.setNeighbor(3, loadedChunks.get(getChunkKey(coords.x, coords.y - 1, coords.z))); // -y
+            chunk.setNeighbor(4, loadedChunks.get(getChunkKey(coords.x, coords.y, coords.z + 1))); // +z
+            chunk.setNeighbor(5, loadedChunks.get(getChunkKey(coords.x, coords.y, coords.z - 1))); // -z
         }
-        
+
         // Generate meshes for chunks that need updates
         for (Chunk chunk : loadedChunks.values()) {
             if (chunk.needsMeshUpdate()) {
@@ -356,8 +361,13 @@ public class ChunkManager {
         }
     }
 
-    private String getChunkKey(int chunkX, int chunkZ) {
-        return chunkX + "," + chunkZ;
+    private String getChunkKey(int chunkX, int chunkY, int chunkZ) {
+        return chunkX + "," + chunkY + "," + chunkZ;
+    }
+
+    private Vector3i parseChunkKey(String chunkKey) {
+        String[] coords = chunkKey.split(",");
+        return new Vector3i(Integer.parseInt(coords[0]), Integer.parseInt(coords[1]), Integer.parseInt(coords[2]));
     }
 
     private void cleanupChunk(Chunk chunk) {
@@ -382,18 +392,27 @@ public class ChunkManager {
         forceUpdate();
     }
 
+    public void setVerticalRenderDistance(int distance) {
+        this.verticalRenderDistance = Math.max(1, Math.min(distance, (MAX_CHUNK_Y - MIN_CHUNK_Y) / 2));
+        this.verticalUnloadDistance = verticalRenderDistance + 2;
+        forceUpdate();
+    }
+
     public int getRenderDistance() {
         return renderDistance;
     }
 
-    public Chunk getChunkAt(Vector3f worldPosition) {
-        int chunkX = (int) Math.floor(worldPosition.x / Chunk.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor(worldPosition.z / Chunk.CHUNK_SIZE);
-        return loadedChunks.get(getChunkKey(chunkX, chunkZ));
+    public int getVerticalRenderDistance() {
+        return verticalRenderDistance;
     }
 
-    public boolean isChunkLoaded(int chunkX, int chunkZ) {
-        return loadedChunks.containsKey(getChunkKey(chunkX, chunkZ));
+    public Chunk getChunkAt(Vector3f worldPosition) {
+        Vector3i chunkCoords = getChunkCoordinates(worldPosition);
+        return loadedChunks.get(getChunkKey(chunkCoords.x, chunkCoords.y, chunkCoords.z));
+    }
+
+    public boolean isChunkLoaded(int chunkX, int chunkY, int chunkZ) {
+        return loadedChunks.containsKey(getChunkKey(chunkX, chunkY, chunkZ));
     }
 
     public String getLoadingStats() {
@@ -404,6 +423,14 @@ public class ChunkManager {
         return String.format("Chunks - Total: %d, Rendered: %d, Culled: %d (%.1f%%)", 
                            totalChunks, renderedChunks, culledChunks, 
                            totalChunks > 0 ? (culledChunks * 100.0f / totalChunks) : 0.0f);
+    }
+
+    public static int getMinWorldY() {
+        return MIN_WORLD_Y;
+    }
+
+    public static int getMaxWorldY() {
+        return MAX_WORLD_Y;
     }
 
     public void cleanup() {
