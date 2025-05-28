@@ -82,9 +82,12 @@ public class Camera {
         return right.normalize();
     }
 
-    // Optional: Getter for position (useful for rendering)
     public Vector3f getPosition() {
         return position;
+    }
+
+    public void setPosition(Vector3f position) {
+        this.position = position;
     }
 
     public Matrix4f getViewMatrix() {

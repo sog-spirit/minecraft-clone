@@ -98,7 +98,7 @@ public class ChunkManager {
 
     private boolean isChunkVisible(Chunk chunk, Vector3f cameraPos) {
         Vector3f chunkPos = chunk.getPosition();
-        
+
         // Calculate chunk bounding box
         chunkMin.set(chunkPos.x, chunkPos.y, chunkPos.z);
         chunkMax.set(chunkPos.x + Chunk.CHUNK_SIZE, chunkPos.y + Chunk.CHUNK_SIZE, chunkPos.z + Chunk.CHUNK_SIZE);
@@ -107,38 +107,55 @@ public class ChunkManager {
         chunkCenter.set(chunkPos.x + Chunk.CHUNK_SIZE * 0.5f, 
                        chunkPos.y + Chunk.CHUNK_SIZE * 0.5f, 
                        chunkPos.z + Chunk.CHUNK_SIZE * 0.5f);
-        
+
         float distanceSquared = cameraPos.distanceSquared(chunkCenter);
         float maxRenderDistanceSquared = (16 * Chunk.CHUNK_SIZE) * (16 * Chunk.CHUNK_SIZE); // 16 chunks max distance
-        
+
         if (distanceSquared > maxRenderDistanceSquared) {
             return false;
         }
-        
+
         // Skip empty chunks
         if (chunk.isEmpty()) {
             return false;
         }
-        
+
         // Skip chunks without generated meshes
         if (!chunk.isMeshGenerated()) {
             return false;
         }
-        
+
         // Frustum culling test
         return frustum.isAABBInside(chunkMin, chunkMax);
     }
 
-    public void preloadInitialChunks(Vector3f playerPosition) {
+    public void preloadInitialChunks(Vector3f playerPosition, Camera camera) {
         int playerChunkX = (int) Math.floor(playerPosition.x / Chunk.CHUNK_SIZE);
         int playerChunkZ = (int) Math.floor(playerPosition.z / Chunk.CHUNK_SIZE);
-        
-        // Load a smaller area synchronously for immediate gameplay
-        int initialLoadRadius = Math.min(3, renderDistance); // Load 3x3 area around player
-        
+
+        float worldX = playerPosition.x;
+        float worldZ = playerPosition.z;
+        float height = 0;
+        float amplitude = 1;
+        float frequency = 0.01f;
+
+        for (int i = 0; i < 4; i++) {
+            height += noise.noise(worldX * frequency, worldZ * frequency) * amplitude;
+            amplitude *= 0.5f;
+            frequency *= 2.0f;
+        }
+
+        int terrainHeight = (int) ((height + 1) * 0.3f * Chunk.CHUNK_SIZE) + Chunk.CHUNK_SIZE / 4;
+        terrainHeight = Math.max(1, Math.min(Chunk.CHUNK_SIZE - 1, terrainHeight));
+
+        playerPosition.y = terrainHeight + 2.0f;
+        camera.setPosition(playerPosition);
+
+        int initialLoadRadius = Math.min(3, renderDistance);
+
         System.out.println("Preloading initial chunks...");
         long startTime = System.currentTimeMillis();
-        
+
         for (int x = playerChunkX - initialLoadRadius; x <= playerChunkX + initialLoadRadius; x++) {
             for (int z = playerChunkZ - initialLoadRadius; z <= playerChunkZ + initialLoadRadius; z++) {
                 String chunkKey = getChunkKey(x, z);
@@ -150,13 +167,13 @@ public class ChunkManager {
                 }
             }
         }
-        
+
         // Update neighbors and generate meshes for initial chunks
         updateChunkNeighbors();
-        
+
         long endTime = System.currentTimeMillis();
         System.out.println("Initial chunks loaded in " + (endTime - startTime) + "ms");
-        
+
         // Now start loading the rest asynchronously
         isInitialLoad = false;
         lastPlayerChunkX = playerChunkX;
