@@ -153,9 +153,6 @@ public class ChunkManager {
         int terrainHeight = (int) ((height + 1) * 0.5f * 64.0f);
         terrainHeight = Math.max(1, Math.min(Chunk.CHUNK_SIZE - 1, terrainHeight));
 
-        playerPosition.y = terrainHeight + 2.0f;
-        camera.setPosition(playerPosition);
-
         int initialHorizontalRadius = Math.min(3, horizontalRenderDistance);
         int initialVerticalRadius = Math.min(2, verticalRenderDistance);
 
@@ -174,6 +171,32 @@ public class ChunkManager {
                 }
             }
         }
+
+        playerChunkY = (int) Math.floor(terrainHeight / Chunk.CHUNK_SIZE);
+        String chunkKey = getChunkKey(playerChunkX, playerChunkY, playerChunkZ);
+        Chunk initialChunk = loadedChunks.get(chunkKey);
+        int localX = (int) (playerPosition.x % Chunk.CHUNK_SIZE);
+        if (localX < 0) localX += Chunk.CHUNK_SIZE;
+        int localZ = (int) (playerPosition.z % Chunk.CHUNK_SIZE);
+        if (localZ < 0) localZ += Chunk.CHUNK_SIZE;
+        int localY = terrainHeight % Chunk.CHUNK_SIZE;
+        float globalY = terrainHeight;
+
+        while (initialChunk != null && localY < Chunk.CHUNK_SIZE) {
+            if (initialChunk.getBlock(localX, localY, localZ) == null || initialChunk.getBlock(localX, localY, localZ) == BlockType.AIR) {
+                break;
+            }
+            localY++;
+            globalY++;
+            if (localY >= Chunk.CHUNK_SIZE) {
+                localY = 0;
+                playerChunkY++;
+                chunkKey = getChunkKey(playerChunkX, playerChunkY, playerChunkZ);
+                initialChunk = loadedChunks.get(chunkKey);
+            }
+        }
+        playerPosition.y = globalY + 1.0f; // Position just above the air block
+        camera.setPosition(playerPosition);
 
         // Update neighbors and generate meshes for initial chunks
         updateChunkNeighbors();

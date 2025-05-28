@@ -249,7 +249,7 @@ public class Chunk {
         return null;
     }
 
-    private BlockType getBlock(int x, int y, int z) {
+    public BlockType getBlock(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return null;
         return blocks[x][y][z];
     }
