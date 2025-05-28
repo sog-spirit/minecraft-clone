@@ -24,31 +24,31 @@ public class Chunk {
     private boolean meshGenerated = false;
     private boolean needsMeshUpdate = false;
     private long lastAccessTime;
-    private int chunkX, chunkZ;
+    private int chunkX, chunkY, chunkZ;
 
     public Chunk(Vector3f position, BaseLoader loader, TextureAtlas atlas, PerlinNoise noise) {
         this.position = position;
         this.loader = loader;
         this.atlas = atlas;
         this.blocks = new BlockType[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
-        this.neighbors = new Chunk[4];
+        this.neighbors = new Chunk[6];
         this.noise = noise;
         this.lastAccessTime = System.currentTimeMillis();
         this.chunkX = (int) (position.x / CHUNK_SIZE);
+        this.chunkY = (int) (position.y / CHUNK_SIZE);
         this.chunkZ = (int) (position.z / CHUNK_SIZE);
         generateTerrain();
     }
 
     public void setNeighbor(int direction, Chunk neighbor) {
-        Chunk oldNeighbor = neighbors[direction];
-        neighbors[direction] = neighbor;
-        
-        // If neighbor changed, we might need mesh update
-        if (oldNeighbor != neighbor) {
-            needsMeshUpdate = true;
-            // Also notify the neighbor that it might need an update
-            if (neighbor != null) {
-                neighbor.markForMeshUpdate();
+        if (direction >= 0 && direction < 6) {
+            Chunk oldNeighbor = neighbors[direction];
+            neighbors[direction] = neighbor;
+            if (oldNeighbor != neighbor) {
+                needsMeshUpdate = true;
+                if (neighbor != null) {
+                    neighbor.markForMeshUpdate();
+                }
             }
         }
     }
@@ -62,42 +62,38 @@ public class Chunk {
     }
 
     private void generateTerrain() {
+        float worldHeight = 64.0f;
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int z = 0; z < CHUNK_SIZE; z++) {
-                // Calculate world coordinates
                 float worldX = position.x + x;
                 float worldZ = position.z + z;
-                
-                // Generate height using multiple octaves of Perlin noise for more realistic terrain
                 float height = 0;
                 float amplitude = 1;
                 float frequency = 0.01f;
-                
-                // Multiple octaves for more detailed terrain
                 for (int i = 0; i < 4; i++) {
                     height += noise.noise(worldX * frequency, worldZ * frequency) * amplitude;
                     amplitude *= 0.5f;
                     frequency *= 2.0f;
                 }
-                
-                // Scale height to fit within chunk (0 to CHUNK_SIZE)
-                int terrainHeight = (int) ((height + 1) * 0.3f * CHUNK_SIZE) + CHUNK_SIZE / 4;
-                terrainHeight = Math.max(1, Math.min(CHUNK_SIZE - 1, terrainHeight));
-
+                int h_global = (int) ((height + 1) * 0.5f * worldHeight);
+                h_global = Math.max(0, Math.min((int)worldHeight, h_global));
                 for (int y = 0; y < CHUNK_SIZE; y++) {
-                    if (y < terrainHeight - 3) {
-                        blocks[x][y][z] = BlockType.STONE;
-                    } else if (y < terrainHeight - 1) {
-                        blocks[x][y][z] = BlockType.DIRT;
-                    } else if (y == terrainHeight - 1) {
-                        // Occasionally place glass blocks for testing transparency
-                        if (noise.noise(worldX * 0.1f, worldZ * 0.1f) > 0.7f) {
-                            blocks[x][y][z] = BlockType.GLASS;
+                    float globalY = position.y + y;
+                    if (globalY < h_global) {
+                        int depth = (int)(h_global - globalY);
+                        if (depth > 3) {
+                            blocks[x][y][z] = BlockType.STONE;
+                        } else if (depth > 1) {
+                            blocks[x][y][z] = BlockType.DIRT;
                         } else {
-                            blocks[x][y][z] = BlockType.GRASS;
+                            if (noise.noise(worldX * 0.1f, worldZ * 0.1f) > 0.7f) {
+                                blocks[x][y][z] = BlockType.GLASS;
+                            } else {
+                                blocks[x][y][z] = BlockType.GRASS;
+                            }
                         }
                     } else {
-                        blocks[x][y][z] = null; // Air
+                        blocks[x][y][z] = BlockType.AIR;
                     }
                 }
             }
@@ -164,118 +160,97 @@ public class Chunk {
     private void addVisibleFaces(int x, int y, int z, BlockType type, List<Float> vertices, List<Integer> indices) {
         float[] cubeVertices = CubeModel.getCube(atlas, type);
         BlockProperties props = BlockRegistry.get(type);
-        
+
         // For transparent blocks, we need to render faces that are adjacent to air or other transparent blocks
         // For opaque blocks, we only render faces adjacent to air or transparent blocks
-        
-        if (shouldRenderFace(x, y + 1, z, type)) {
+
+        if (shouldRenderFace(x, y, z, 0, 1, 0, type)) {
             float r = (type == BlockType.GRASS) ? 0.4863f : 1.0f;
             float g = (type == BlockType.GRASS) ? 0.7412f : 1.0f;
             float b = (type == BlockType.GRASS) ? 0.2706f : 1.0f;
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 16, 20, x, y, z, r, g, b, alpha); // Top
         }
-        if (shouldRenderFace(x, y - 1, z, type)) {
+        if (shouldRenderFace(x, y, z, 0, -1, 0, type)) {
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 20, 24, x, y, z, 1.0f, 1.0f, 1.0f, alpha); // Bottom
         }
-        if (shouldRenderFace(x, y, z + 1, type)) {
+        if (shouldRenderFace(x, y, z, 0, 0, 1, type)) {
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 0, 4, x, y, z, 1.0f, 1.0f, 1.0f, alpha);   // Front
         }
-        if (shouldRenderFace(x, y, z - 1, type)) {
+        if (shouldRenderFace(x, y, z, 0, 0, -1, type)) {
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 4, 8, x, y, z, 1.0f, 1.0f, 1.0f, alpha);   // Back
         }
-        if (shouldRenderFace(x - 1, y, z, type)) {
+        if (shouldRenderFace(x, y, z, -1, 0, 0, type)) {
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 8, 12, x, y, z, 1.0f, 1.0f, 1.0f, alpha);  // Left
         }
-        if (shouldRenderFace(x + 1, y, z, type)) {
+        if (shouldRenderFace(x, y, z, 1, 0, 0, type)) {
             float alpha = props.isTransparent ? 0.8f : 1.0f;
             addFace(vertices, indices, cubeVertices, 12, 16, x, y, z, 1.0f, 1.0f, 1.0f, alpha); // Right
         }
     }
 
-    private boolean shouldRenderFace(int x, int y, int z, BlockType currentType) {
+    private boolean shouldRenderFace(int x, int y, int z, int dx, int dy, int dz, BlockType currentType) {
+        int adjX = x + dx;
+        int adjY = y + dy;
+        int adjZ = z + dz;
         BlockProperties currentProps = BlockRegistry.get(currentType);
-        
-        // Check if the position is within the current chunk
-        if (x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE) {
-            BlockType adjacent = blocks[x][y][z];
-            if (adjacent == null) {
-                return true; // Adjacent to air, always render
-            }
-            
+
+        if (adjX >= 0 && adjX < CHUNK_SIZE && adjY >= 0 && adjY < CHUNK_SIZE && adjZ >= 0 && adjZ < CHUNK_SIZE) {
+            BlockType adjacent = blocks[adjX][adjY][adjZ];
+            if (adjacent == null) return true;
             BlockProperties adjacentProps = BlockRegistry.get(adjacent);
-            
-            // If current block is opaque, only render face if adjacent is air or transparent
             if (!currentProps.isTransparent) {
                 return adjacent == BlockType.AIR || adjacentProps.isTransparent;
             }
-            
-            // For transparent blocks, be more selective to reduce z-fighting
             if (currentProps.isTransparent) {
-                // Don't render transparent faces adjacent to the same transparent block type
-                if (adjacent == currentType) {
-                    return false;
-                }
-                // Don't render transparent faces directly adjacent to opaque blocks
-                // (this reduces z-fighting but might affect visual quality)
-                if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) {
-                    return false; // Comment this line if you want transparent faces against solid blocks
-                }
-                // Render if adjacent to air or different block types
+                if (adjacent == currentType) return false;
+                if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) return false;
                 return adjacent == BlockType.AIR || adjacent != currentType;
             }
-            
         } else {
-            // Handle chunk boundaries (similar logic as before)
-            int chunkX = (x < 0) ? -1 : (x >= CHUNK_SIZE ? 1 : 0);
-            int chunkZ = (z < 0) ? -1 : (z >= CHUNK_SIZE ? 1 : 0);
-            int blockX = (x + CHUNK_SIZE) % CHUNK_SIZE;
-            int blockY = y;
-            int blockZ = (z + CHUNK_SIZE) % CHUNK_SIZE;
-
-            Chunk neighbor = getNeighbor(chunkX, chunkZ);
+            int chunkOffsetX = (adjX < 0 ? -1 : (adjX >= CHUNK_SIZE ? 1 : 0));
+            int chunkOffsetY = (adjY < 0 ? -1 : (adjY >= CHUNK_SIZE ? 1 : 0));
+            int chunkOffsetZ = (adjZ < 0 ? -1 : (adjZ >= CHUNK_SIZE ? 1 : 0));
+            if (chunkOffsetX == 0 && chunkOffsetY == 0 && chunkOffsetZ == 0) return false;
+            Chunk neighbor = getNeighbor(chunkOffsetX, chunkOffsetY, chunkOffsetZ);
             if (neighbor != null) {
+                int blockX = (adjX + CHUNK_SIZE) % CHUNK_SIZE;
+                int blockY = (adjY + CHUNK_SIZE) % CHUNK_SIZE;
+                int blockZ = (adjZ + CHUNK_SIZE) % CHUNK_SIZE;
                 BlockType adjacent = neighbor.getBlock(blockX, blockY, blockZ);
-                if (adjacent == null) {
-                    return true;
-                }
-                
+                if (adjacent == null) return true;
                 BlockProperties adjacentProps = BlockRegistry.get(adjacent);
-                
                 if (!currentProps.isTransparent) {
                     return adjacent == BlockType.AIR || adjacentProps.isTransparent;
                 }
-                
-                // Same transparent block logic for chunk boundaries
-                if (adjacent == currentType) {
-                    return false;
+                if (currentProps.isTransparent) {
+                    if (adjacent == currentType) return false;
+                    if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) return false;
+                    return adjacent == BlockType.AIR || adjacent != currentType;
                 }
-                if (!adjacentProps.isTransparent && adjacent != BlockType.AIR) {
-                    return false; // Reduce z-fighting
-                }
-                return adjacent == BlockType.AIR || adjacent != currentType;
             } else {
                 return true;
             }
         }
-        
         return false;
     }
 
-    private Chunk getNeighbor(int chunkX, int chunkZ) {
-        if (chunkX == 1 && chunkZ == 0) return neighbors[0]; // +x
-        if (chunkX == -1 && chunkZ == 0) return neighbors[1]; // -x
-        if (chunkX == 0 && chunkZ == 1) return neighbors[2]; // +z
-        if (chunkX == 0 && chunkZ == -1) return neighbors[3]; // -z
-        return null; // No diagonal neighbors for simplicity
+    private Chunk getNeighbor(int dx, int dy, int dz) {
+        if (dx == 1 && dy == 0 && dz == 0) return neighbors[0];  // +x
+        if (dx == -1 && dy == 0 && dz == 0) return neighbors[1]; // -x
+        if (dx == 0 && dy == 0 && dz == 1) return neighbors[2];  // +z
+        if (dx == 0 && dy == 0 && dz == -1) return neighbors[3]; // -z
+        if (dx == 0 && dy == 1 && dz == 0) return neighbors[4];  // +y
+        if (dx == 0 && dy == -1 && dz == 0) return neighbors[5]; // -y
+        return null;
     }
 
     private BlockType getBlock(int x, int y, int z) {
-        if (y < 0 || y >= CHUNK_SIZE) return null; // Out of vertical bounds
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return null;
         return blocks[x][y][z];
     }
 
@@ -355,8 +330,8 @@ public class Chunk {
         return meshGenerated;
     }
 
-    public int getDistanceFrom(int otherChunkX, int otherChunkZ) {
-        return Math.max(Math.abs(chunkX - otherChunkX), Math.abs(chunkZ - otherChunkZ));
+    public int getDistanceFrom(int otherChunkX, int otherChunkY, int otherChunkZ) {
+        return Math.max(Math.max(Math.abs(chunkX - otherChunkX), Math.abs(chunkY - otherChunkY)), Math.abs(chunkZ - otherChunkZ));
     }
 
     public boolean isEmpty() {
